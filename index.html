@@ -11,12 +11,13 @@
     body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .animate-pulse-fast { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
   </style>
   <script>
-    // ⚠️ 1. 換成您新部署的網址
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbyXJ3Dzq_qF3nMQPfZh4EPyrkswrtiV2jyuAJDpGRnWX05MEgIjpOmOitnDnbwom4o1qw/exec";
+    // ⚠️ 請換成您的 GAS 新網址
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxia3SZ5RqPWR4bX_C220wtOhnZ6cObwXlMdCIG-k8vyHjAn9cQvuWiR1PHiW7kzWrwhg/exec";
     
-    // ⚠️ 2. 您的日曆嵌入網址
+    // Google 日曆嵌入網址
     const CALENDAR_EMBED_URL = "https://calendar.google.com/calendar/embed?src=02c213a0408b579568583642708285d69e8a9c62cb232cb3c1e7aa2d135d33d4%40group.calendar.google.com&ctz=Asia%2FTaipei"; 
   </script>
 </head>
@@ -25,16 +26,11 @@
   <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-white hidden md:flex flex-col shadow-2xl z-20">
     <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50">
-        <i class="ri-building-2-fill text-white"></i>
-      </div>
-      <div>
-        <h1 class="font-bold text-lg tracking-wide">場地預約</h1>
-        <p class="text-xs text-slate-400">訓練中心內部系統</p>
-      </div>
+      <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50"><i class="ri-building-2-fill text-white"></i></div>
+      <div><h1 class="font-bold text-lg tracking-wide">場地預約</h1><p class="text-xs text-slate-400">訓練中心內部系統</p></div>
     </div>
     <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-      <button onclick="switchView('form')" class="nav-btn w-full text-left px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition"><i class="ri-add-circle-line text-xl"></i> 新增申請</button>
+      <button onclick="switchView('form'); resetForm();" class="nav-btn w-full text-left px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition"><i class="ri-add-circle-line text-xl"></i> 新增申請</button>
       <button onclick="switchView('list')" class="nav-btn w-full text-left px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition"><i class="ri-file-list-3-line text-xl"></i> 預約清單</button>
       <button id="exportCsvBtn" class="w-full text-left px-4 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition text-sm mt-4"><i class="ri-file-excel-line"></i> 匯出報表</button>
     </nav>
@@ -54,15 +50,16 @@
         <div class="lg:col-span-2 space-y-6">
           <div class="flex justify-between items-end">
             <div>
-              <h2 class="text-2xl font-bold text-slate-800">新增預約申請</h2>
-              <p class="text-slate-500 text-sm mt-1">資料送出後為「待審核」，系統將自動寄信通知。</p>
+              <h2 id="formTitle" class="text-2xl font-bold text-slate-800">新增預約申請</h2>
+              <p class="text-slate-500 text-sm mt-1">審核中會寄信通知，核准後同步日曆。</p>
             </div>
             <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1"><i class="ri-refresh-line"></i> 重新同步</button>
           </div>
 
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
             <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
             <form id="bookingForm" class="p-6 md:p-8 space-y-6">
+              <input type="hidden" id="editId">
               <div class="space-y-4">
                 <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider"><i class="ri-user-smile-line"></i> 申請資料</h3>
                 <div class="grid md:grid-cols-2 gap-4">
@@ -91,20 +88,25 @@
                       <input id="startTime" type="time" class="input-field" required>
                       <input id="endTime" type="time" class="input-field" required>
                     </div>
-                    <div id="timeError" class="hidden text-xs text-rose-500 font-bold"><i class="ri-error-warning-line"></i> 結束時間錯誤</div>
                   </div>
                 </div>
                 <textarea id="purpose" rows="3" class="input-field" placeholder="用途說明..."></textarea>
               </div>
-              <details class="group bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <summary class="flex cursor-pointer items-center justify-between font-medium text-slate-600 text-sm"><span class="flex items-center gap-2"><i class="ri-calendar-todo-fill"></i> 批次登記</span><i class="ri-arrow-down-s-line group-open:rotate-180 transition"></i></summary>
+              
+              <!-- 批次 (編輯模式隱藏) -->
+              <details id="batchSection" class="group bg-slate-50 rounded-xl border border-slate-200 p-4">
+                <summary class="flex cursor-pointer items-center justify-between font-medium text-slate-600 text-sm"><span class="flex items-center gap-2"><i class="ri-calendar-todo-fill"></i> 批次登記工具</span><i class="ri-arrow-down-s-line group-open:rotate-180 transition"></i></summary>
                 <div class="grid grid-cols-2 gap-3 mt-3 border-t border-slate-200 pt-3">
                   <div><label class="text-[10px] text-slate-400 font-bold">起始</label><input id="dateStart" type="date" class="input-field text-sm p-2"></div>
                   <div><label class="text-[10px] text-slate-400 font-bold">結束</label><input id="dateEnd" type="date" class="input-field text-sm p-2"></div>
                 </div>
                 <div class="flex items-center gap-2 mt-2"><input id="excludeWeekend" type="checkbox" class="rounded border-slate-300 text-indigo-600"> <label class="text-sm text-slate-600">排除六日</label></div>
               </details>
-              <button type="submit" id="submitBtn" class="w-full rounded-xl bg-slate-900 text-white py-3.5 text-sm font-bold shadow-lg hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"><i class="ri-send-plane-fill"></i> 提交申請</button>
+
+              <div class="flex gap-2">
+                <button type="button" id="cancelEditBtn" class="hidden w-1/3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200">取消編輯</button>
+                <button type="submit" id="submitBtn" class="w-full rounded-xl bg-slate-900 text-white py-3.5 text-sm font-bold shadow-lg hover:bg-indigo-600 transition-all flex items-center justify-center gap-2"><i class="ri-send-plane-fill"></i> 提交申請</button>
+              </div>
             </form>
           </div>
         </div>
@@ -116,7 +118,6 @@
           </div>
           <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-1 overflow-hidden">
             <iframe id="calendarFrame" src="" style="border:0" width="100%" height="400" frameborder="0" scrolling="no"></iframe>
-            <div class="p-2 text-center text-xs text-slate-400 bg-slate-50">👆 空白時段即可預約</div>
           </div>
         </div>
       </div>
@@ -128,14 +129,13 @@
                <h2 class="font-bold text-lg text-slate-700 flex items-center gap-2"><i class="ri-file-list-3-line text-indigo-500"></i> 預約總表</h2>
                <input id="searchInput" type="text" placeholder="搜尋..." class="input-field py-1.5 text-sm w-40">
             </div>
-            <div class="flex-1 overflow-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 shadow-sm z-10"><tr><th class="p-4">狀態</th><th class="p-4">日期</th><th class="p-4">時間</th><th class="p-4">場地</th><th class="p-4">單位</th><th class="p-4 w-24 text-center">取消</th></tr></thead><tbody id="bookingTbody" class="divide-y divide-slate-100"></tbody></table></div>
+            <div class="flex-1 overflow-auto"><table class="w-full text-sm text-left"><thead class="bg-slate-50 text-slate-500 font-semibold sticky top-0 shadow-sm z-10"><tr><th class="p-4">狀態</th><th class="p-4">日期</th><th class="p-4">時間</th><th class="p-4">場地</th><th class="p-4">單位</th><th class="p-4 w-28 text-center">操作</th></tr></thead><tbody id="bookingTbody" class="divide-y divide-slate-100"></tbody></table></div>
          </div>
       </div>
     </div>
   </main>
 
   <div id="toast" class="fixed bottom-8 right-8 px-6 py-4 bg-slate-800 text-white rounded-xl shadow-2xl flex items-center gap-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50"><div id="toastIcon"></div><div><h4 id="toastTitle" class="font-bold text-sm"></h4><p id="toastMsg" class="text-xs text-slate-300"></p></div></div>
-
   <style>.input-field { width: 100%; border-radius: 0.5rem; border: 1px solid #e2e8f0; padding: 0.6rem; font-size: 0.875rem; transition: all 0.2s; } .input-field:focus { border-color: #6366f1; outline: 2px solid #e0e7ff; } .disabled-input { background-color: #f3f4f6; color: #9ca3af; pointer-events: none; }</style>
 
   <script>
@@ -169,33 +169,78 @@
 
     $('#bookingForm').addEventListener('submit', async e => {
       e.preventDefault();
-      if($('#endTime').value <= $('#startTime').value) { $('#timeError').classList.remove('hidden'); return; }
-      const dStart=$('#dateStart').value, dEnd=$('#dateEnd').value;
-      let dates=[$('#date').value];
-      if(dStart&&dEnd){ dates=[]; let c=new Date(dStart), end=new Date(dEnd); while(c<=end){ if(!$('#excludeWeekend').checked||(c.getDay()!==0&&c.getDay()!==6)) dates.push(c.toISOString().slice(0,10)); c.setDate(c.getDate()+1); } }
+      if($('#endTime').value <= $('#startTime').value) { alert('時間錯誤'); return; }
       
-      $('#submitBtn').innerHTML = '處理中...';
-      try {
+      const isEdit = $('#editId').value !== "";
+      const baseData = {
+        unit:$('#unit').value, contact:$('#contact').value, phone:$('#phone').value, email:$('#email').value,
+        facility:$('#facility').value, purpose:$('#purpose').value, startTime:$('#startTime').value, endTime:$('#endTime').value,
+        date:$('#date').value, id: isEdit ? $('#editId').value : crypto.randomUUID()
+      };
+
+      // 編輯模式只送一筆
+      if (isEdit) {
+        $('#submitBtn').innerHTML = '更新中...';
+        await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify({...baseData, action:'edit'})});
+        showToast('更新成功','資料已修正','success');
+        resetForm();
+      } 
+      // 新增模式 (支援批次)
+      else {
+        const dStart=$('#dateStart').value, dEnd=$('#dateEnd').value;
+        let dates=[baseData.date];
+        if(dStart&&dEnd){ dates=[]; let c=new Date(dStart), end=new Date(dEnd); while(c<=end){ if(!$('#excludeWeekend').checked||(c.getDay()!==0&&c.getDay()!==6)) dates.push(c.toISOString().slice(0,10)); c.setDate(c.getDate()+1); } }
+        
+        $('#submitBtn').innerHTML = '處理中...';
         for(const d of dates) {
-          const data = {
-            unit:$('#unit').value, contact:$('#contact').value, phone:$('#phone').value, email:$('#email').value,
-            facility:$('#facility').value, purpose:$('#purpose').value, startTime:$('#startTime').value, endTime:$('#endTime').value,
-            date:d, id:crypto.randomUUID(), action:'create'
-          };
-          await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify(data)});
+           await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify({...baseData, date:d, action:'create'})});
         }
-        showToast('申請成功','已發送確認信給您','success'); $('#bookingForm').reset();
-        setTimeout(fetchData, 2500);
-      } catch(err){ showToast('失敗','請檢查網路','error'); }
-      finally{ $('#submitBtn').innerHTML='提交申請'; }
+        showToast('申請成功',`已送出 ${dates.length} 筆申請`,'success');
+        resetForm();
+      }
+      setTimeout(fetchData, 2500);
     });
 
-    // 取消請求：送出 'cancel_request'
+    // 編輯功能
+    window.editRecord = (id) => {
+      const r = dbData.find(x => x.id === id);
+      if(!r) return;
+      $('#editId').value = r.id;
+      $('#unit').value = r.unit; $('#contact').value = r.contact; $('#phone').value = r.phone; $('#email').value = r.email;
+      $('#facility').value = r.facility; $('#purpose').value = r.purpose; $('#date').value = r.date; 
+      $('#startTime').value = r.startTime; $('#endTime').value = r.endTime;
+      
+      // UI 切換
+      $('#formTitle').textContent = "編輯預約申請";
+      $('#submitBtn').innerHTML = "<i class='ri-save-line'></i> 儲存變更";
+      $('#submitBtn').classList.replace('bg-slate-900', 'bg-emerald-600');
+      $('#cancelEditBtn').classList.remove('hidden');
+      $('#batchSection').classList.add('hidden'); // 編輯時隱藏批次
+      
+      switchView('form');
+    };
+
+    $('#cancelEditBtn').onclick = resetForm;
+
+    function resetForm() {
+      $('#bookingForm').reset();
+      $('#editId').value = "";
+      $('#date').value = new Date().toISOString().slice(0,10);
+      $('#formTitle').textContent = "新增預約申請";
+      $('#submitBtn').innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請";
+      $('#submitBtn').classList.replace('bg-emerald-600', 'bg-slate-900');
+      $('#cancelEditBtn').classList.add('hidden');
+      $('#batchSection').classList.remove('hidden');
+      $('#isAllDay').checked = false;
+      $('#startTime').classList.remove('disabled-input'); $('#startTime').readOnly = false;
+      $('#endTime').classList.remove('disabled-input'); $('#endTime').readOnly = false;
+    }
+
     window.requestCancel = async (id) => {
-      if(!confirm('確定要「申請取消」嗎？\n\n系統將通知管理員進行審核，\n審核通過後將自動移除日曆行程。')) return;
+      if(!confirm('確定要「申請取消」嗎？\n將通知管理員審核。')) return;
       try {
         await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify({action:'cancel_request', id:id})});
-        showToast('請求已送出','等待管理員審核...','success');
+        showToast('請求已送出','請等待審核','success');
         setTimeout(fetchData, 2500);
       } catch(e){ showToast('失敗','請稍後再試','error'); }
     };
@@ -205,6 +250,7 @@
       const filter=$('#searchInput').value.toLowerCase();
       const list=dbData.filter(x=>(x.unit+x.contact+x.facility).toLowerCase().includes(filter)).sort((a,b)=>(b.date+b.startTime).localeCompare(a.date+a.startTime));
       if(!list.length){ tbody.innerHTML='<tr><td colspan="6" class="p-8 text-center text-slate-400">無資料</td></tr>'; return; }
+      
       list.forEach(x => {
         let badge='bg-amber-100 text-amber-700';
         if(x.status.includes('已核准')) badge='bg-emerald-100 text-emerald-700';
@@ -212,14 +258,18 @@
         if(x.status.includes('取消')||x.status.includes('拒絕')) badge='bg-gray-100 text-gray-500 line-through';
         if(x.status.includes('申請取消')) badge='bg-orange-100 text-orange-700';
         
-        // 只有「未取消」且「未拒絕」的單可以申請取消
+        // 按鈕邏輯：待審核/撞期 -> 可編輯+取消 ; 其他 -> 只能取消
+        const isPending = x.status.includes('待審核') || x.status.includes('撞期');
         const canCancel = !x.status.includes('取消') && !x.status.includes('拒絕');
 
         tbody.innerHTML+=`<tr class="hover:bg-slate-50 border-b border-slate-100">
           <td class="p-4"><span class="px-2 py-1 rounded text-xs ${badge}">${x.status}</span></td>
           <td class="p-4 font-mono">${x.date}</td><td class="p-4 font-mono font-bold">${x.startTime}-${x.endTime}</td>
           <td class="p-4">${x.facility}</td><td class="p-4 text-xs text-slate-500">${x.unit}<br>${x.contact}</td>
-          <td class="p-4 text-center">${canCancel ? `<button onclick="requestCancel('${x.id}')" class="text-rose-500 hover:bg-rose-50 p-1 rounded" title="申請取消"><i class="ri-close-circle-line text-xl"></i></button>` : ''}</td>
+          <td class="p-4 text-center flex justify-center gap-2">
+            ${isPending ? `<button onclick="editRecord('${x.id}')" class="text-indigo-500 hover:bg-indigo-50 p-1 rounded" title="編輯"><i class="ri-edit-line text-lg"></i></button>` : ''}
+            ${canCancel ? `<button onclick="requestCancel('${x.id}')" class="text-rose-500 hover:bg-rose-50 p-1 rounded" title="申請取消"><i class="ri-close-circle-line text-lg"></i></button>` : ''}
+          </td>
         </tr>`;
       });
     }
