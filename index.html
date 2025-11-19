@@ -13,10 +13,10 @@
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   </style>
   <script>
-    // ⚠️ 請更新為您剛剛部署的 GAS 網址
+    // ⚠️ 您的最新後端網址
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbwODj9aUIEFdDVJ2tcHvalnE0Qu88iYGKyVvB0yOB7Lh2zg1Tthl7IoVBWKQqUomtqFdw/exec";
     
-    // Google 日曆嵌入網址
+    // 您的日曆網址
     const CALENDAR_EMBED_URL = "https://calendar.google.com/calendar/embed?src=02c213a0408b579568583642708285d69e8a9c62cb232cb3c1e7aa2d135d33d4%40group.calendar.google.com&ctz=Asia%2FTaipei"; 
   </script>
 </head>
@@ -194,6 +194,7 @@
       if(!has) con.innerHTML='<div class="text-sm text-slate-400 py-4 text-center">未來 7 天無核准預約</div>';
     }
 
+    // 新增/編輯 表單
     $('#bookingForm').addEventListener('submit', async e => {
       e.preventDefault();
       if($('#endTime').value <= $('#startTime').value) { alert('時間錯誤'); return; }
@@ -207,6 +208,7 @@
 
       if (isEdit) {
         $('#submitBtn').innerHTML = '更新中...';
+        // 編輯使用 no-cors，因為目前後端結構未全部回傳 JSON 給編輯接口，維持穩定性
         await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify({...baseData, action:'edit'})});
         showToast('更新成功','資料已修正','success');
         resetForm();
@@ -225,7 +227,6 @@
       setTimeout(fetchData, 2500);
     });
 
-    // 編輯功能
     window.editRecord = (id) => {
       const r = dbData.find(x => x.id === id);
       if(!r) return;
@@ -265,7 +266,7 @@
       $('#cancelModal').classList.replace('hidden','flex');
     };
 
-    // 送出取消請求
+    // ✅ 修正版：送出取消請求 (支援錯誤提示)
     $('#cancelForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = $('#cancelTargetId').value;
@@ -273,16 +274,29 @@
       const reason = $('#cancelReason').value.trim();
       const btn = $('#confirmCancelBtn');
       
-      btn.innerHTML = '驗證中...';
+      btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 驗證中...';
       try {
-        // 這裡前端會認為永遠成功 (因為 no-cors)，錯誤處理依賴後端不動作
-        await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify({
-          action:'cancel_request', id:id, verifyEmail:email, reason:reason
-        })});
-        showToast('請求已送出','驗證中，若成功將變更狀態','success');
-        $('#cancelModal').classList.replace('flex','hidden');
-        setTimeout(fetchData, 3000);
-      } catch(err){ showToast('連線錯誤','請稍後再試','error'); }
+        // 使用標準 fetch (無 no-cors) 接收後端 JSON 回應
+        const res = await fetch(GAS_ENDPOINT, {
+          method: 'POST', 
+          body: JSON.stringify({
+            action: 'cancel_request', id:id, verifyEmail:email, reason:reason
+          })
+        });
+        const result = await res.json();
+
+        if (result.status === 'success') {
+           showToast('請求已送出', '驗證成功，請等待審核', 'success');
+           $('#cancelModal').classList.replace('flex','hidden');
+           setTimeout(fetchData, 1500);
+        } else {
+           // 顯示後端回傳的錯誤 (Email 不符)
+           alert(result.message || '驗證失敗');
+        }
+      } catch(err){ 
+        showToast('連線錯誤','請稍後再試','error'); 
+        console.error(err);
+      }
       finally { btn.innerHTML = '送出申請'; }
     });
 
