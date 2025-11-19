@@ -13,10 +13,10 @@
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   </style>
   <script>
-    // ⚠️ 您的最新後端網址
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbwODj9aUIEFdDVJ2tcHvalnE0Qu88iYGKyVvB0yOB7Lh2zg1Tthl7IoVBWKQqUomtqFdw/exec";
+    // ⚠️ 1. 請更新為您的新 GAS 網址
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbwPAFkxORTqkQLNO9_6vdUcfg7Gn1Oe93TxEdXnSejEHpdLAZhG3rtye8vIqlrqidRqng/exec";
     
-    // 您的日曆網址
+    // ⚠️ 2. 日曆嵌入網址
     const CALENDAR_EMBED_URL = "https://calendar.google.com/calendar/embed?src=02c213a0408b579568583642708285d69e8a9c62cb232cb3c1e7aa2d135d33d4%40group.calendar.google.com&ctz=Asia%2FTaipei"; 
   </script>
 </head>
@@ -139,21 +139,12 @@
   <!-- 取消驗證 Modal -->
   <div id="cancelModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm transition-opacity">
     <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm transform scale-100 transition-transform">
-      <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-        <i class="ri-shield-keyhole-line text-indigo-600"></i> 身分驗證
-      </h3>
+      <h3 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2"><i class="ri-shield-keyhole-line text-indigo-600"></i> 身分驗證</h3>
       <p class="text-sm text-slate-500 mb-4">請輸入申請時的 Email 以確認身分。</p>
-      
       <form id="cancelForm" class="space-y-3">
         <input type="hidden" id="cancelTargetId">
-        <div>
-          <label class="text-xs font-bold text-slate-400">驗證 Email *</label>
-          <input type="email" id="verifyEmail" class="input-field" placeholder="example@gmail.com" required>
-        </div>
-        <div>
-          <label class="text-xs font-bold text-slate-400">取消原因 *</label>
-          <textarea id="cancelReason" class="input-field" rows="2" placeholder="例如：行程變更..." required></textarea>
-        </div>
+        <div><label class="text-xs font-bold text-slate-400">驗證 Email *</label><input type="email" id="verifyEmail" class="input-field" placeholder="example@gmail.com" required></div>
+        <div><label class="text-xs font-bold text-slate-400">取消原因 *</label><textarea id="cancelReason" class="input-field" rows="2" placeholder="例如：行程變更..." required></textarea></div>
         <div class="flex gap-2 pt-2">
           <button type="button" onclick="$('#cancelModal').classList.replace('flex','hidden')" class="flex-1 py-2 bg-gray-100 text-gray-600 rounded-xl font-medium hover:bg-gray-200">關閉</button>
           <button type="submit" id="confirmCancelBtn" class="flex-1 py-2 bg-rose-600 text-white rounded-xl font-bold hover:bg-rose-700 shadow-lg shadow-rose-200">送出申請</button>
@@ -194,7 +185,6 @@
       if(!has) con.innerHTML='<div class="text-sm text-slate-400 py-4 text-center">未來 7 天無核准預約</div>';
     }
 
-    // 新增/編輯 表單
     $('#bookingForm').addEventListener('submit', async e => {
       e.preventDefault();
       if($('#endTime').value <= $('#startTime').value) { alert('時間錯誤'); return; }
@@ -208,8 +198,7 @@
 
       if (isEdit) {
         $('#submitBtn').innerHTML = '更新中...';
-        // 編輯使用 no-cors，因為目前後端結構未全部回傳 JSON 給編輯接口，維持穩定性
-        await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify({...baseData, action:'edit'})});
+        await fetch(GAS_ENDPOINT, {method:'POST', headers: {"Content-Type": "text/plain"}, body:JSON.stringify({...baseData, action:'edit'})});
         showToast('更新成功','資料已修正','success');
         resetForm();
       } else {
@@ -219,7 +208,7 @@
         
         $('#submitBtn').innerHTML = '處理中...';
         for(const d of dates) {
-           await fetch(GAS_ENDPOINT, {method:'POST', mode:'no-cors', body:JSON.stringify({...baseData, date:d, action:'create'})});
+           await fetch(GAS_ENDPOINT, {method:'POST', headers: {"Content-Type": "text/plain"}, body:JSON.stringify({...baseData, date:d, action:'create'})});
         }
         showToast('申請成功',`已送出 ${dates.length} 筆申請`,'success');
         resetForm();
@@ -258,7 +247,6 @@
       $('#endTime').classList.remove('disabled-input'); $('#endTime').readOnly = false;
     }
 
-    // 打開取消視窗
     window.openCancelModal = (id) => {
       $('#cancelTargetId').value = id;
       $('#verifyEmail').value = '';
@@ -266,7 +254,6 @@
       $('#cancelModal').classList.replace('hidden','flex');
     };
 
-    // ✅ 修正版：送出取消請求 (支援錯誤提示)
     $('#cancelForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       const id = $('#cancelTargetId').value;
@@ -276,27 +263,19 @@
       
       btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 驗證中...';
       try {
-        // 使用標準 fetch (無 no-cors) 接收後端 JSON 回應
         const res = await fetch(GAS_ENDPOINT, {
-          method: 'POST', 
-          body: JSON.stringify({
-            action: 'cancel_request', id:id, verifyEmail:email, reason:reason
-          })
+          method: 'POST', headers: {"Content-Type": "text/plain"},
+          body: JSON.stringify({ action:'cancel_request', id:id, verifyEmail:email, reason:reason })
         });
         const result = await res.json();
-
         if (result.status === 'success') {
            showToast('請求已送出', '驗證成功，請等待審核', 'success');
            $('#cancelModal').classList.replace('flex','hidden');
            setTimeout(fetchData, 1500);
         } else {
-           // 顯示後端回傳的錯誤 (Email 不符)
            alert(result.message || '驗證失敗');
         }
-      } catch(err){ 
-        showToast('連線錯誤','請稍後再試','error'); 
-        console.error(err);
-      }
+      } catch(err){ showToast('連線錯誤','請稍後再試','error'); }
       finally { btn.innerHTML = '送出申請'; }
     });
 
