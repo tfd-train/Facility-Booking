@@ -13,8 +13,8 @@
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
   </style>
   <script>
-    // ⚠️ 1. 請更新為您的新 GAS 網址
-    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxKeO5t47sRsfie6OECIrl0sY-JhlCeUuRm4olj5dHEOcyFbq4ievHuIi4NJ6jm6QCQYA/exec";
+    // ⚠️ 1. 請更新為您的新 GAS 網址 (務必重新部署)
+    const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbzmuLzcXb1hMMIBCIXSkqwqndZhy3NXbu9qFaL56dShvz5381yHwqhL1FpWt6Y11R03PQ/exec";
     
     // ⚠️ 2. 日曆嵌入網址
     const CALENDAR_EMBED_URL = "https://calendar.google.com/calendar/embed?src=02c213a0408b579568583642708285d69e8a9c62cb232cb3c1e7aa2d135d33d4%40group.calendar.google.com&ctz=Asia%2FTaipei"; 
@@ -71,8 +71,18 @@
                 <!-- 場地選單 -->
                 <select id="facility" class="input-field" required>
                   <option value="" disabled selected>請選擇場地...</option>
-                  <optgroup label="教學區域"><option>教室701</option><option>教室702</option><option>教室703</option></optgroup>
-                  <optgroup label="實體訓練場"><option>空呼氣訓練場</option><option>燃燒櫃</option><option>燃燒室</option><option>大直訓練場</option><option>AB塔</option><option>其他場地1</option><option>其他場地2</option></optgroup>
+                  <optgroup label="教學區域">
+                    <option>教室701</option>
+                    <option>教室702</option>
+                    <option>教室703</option>
+                  </optgroup>
+                  <optgroup label="實體訓練場">
+                    <option>空呼氣訓練場</option>
+                    <option>燃燒櫃</option>
+                    <option>燃燒室</option>
+                    <option>大直訓練場</option>
+                    <option>AB塔</option>
+                  </optgroup>
                   <option value="other">✏️ 其他 (自填)</option>
                 </select>
                 <!-- 自填場地輸入框 (預設隱藏) -->
