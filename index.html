@@ -4,37 +4,35 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
   <title>場地借用管理系統</title>
-  <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- 引入 Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
   
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
     body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
-    
-    /* 自訂捲軸樣式 */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
-    
-    /* 輸入框通用樣式 */
     .input-field { width: 100%; border-radius: 0.5rem; border: 1px solid #e2e8f0; padding: 0.6rem; font-size: 0.875rem; transition: all 0.2s; } 
     .input-field:focus { border-color: #6366f1; outline: 2px solid #e0e7ff; } 
     .disabled-input { background-color: #f3f4f6; color: #9ca3af; pointer-events: none; }
+    aside.absolute { bottom: 0; }
     
-    /* 手機版側邊欄定位修正 */
-    aside.absolute { bottom: 0; } 
+    /* 紅色呼吸燈動畫 (用於強調缺件按鈕) */
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(225, 29, 72, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+    }
+    .btn-alert { animation: pulse-red 2s infinite; }
   </style>
 
   <script>
     // ==========================================
-    // ⚠️ 1. 請填入您的 Google Apps Script 網址
+    // ⚠️ 1. GAS 網址
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxqU02xkBw0BFXNHvUT2n5Ql9CagnS7xjaRwBJmWnQQx4cZeP_mgzmDuDpInPDapLAoow/exec";
-    
     // ⚠️ 2. 日曆網址
     const CALENDAR_EMBED_URL = "https://calendar.google.com/calendar/embed?src=02c213a0408b579568583642708285d69e8a9c62cb232cb3c1e7aa2d135d33d4%40group.calendar.google.com&ctz=Asia%2FTaipei"; 
-    
-    // ⚠️ 3. 系統整合連結 (請修改為您真實的 GitHub Pages 網址)
+    // ⚠️ 3. 系統整合連結
     const PORTAL_URL = "https://sorryxx24.github.io/Linktest/"; 
     const OTHER_SYSTEM_URL = "https://sorryxx24.github.io/testhtml/";
     // ==========================================
@@ -42,9 +40,8 @@
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen overflow-hidden flex selection:bg-indigo-500 selection:text-white">
 
-  <!-- Sidebar (側邊欄) -->
+  <!-- Sidebar -->
   <aside class="w-64 bg-slate-900 text-white hidden md:flex flex-col shadow-2xl z-30 transition-all duration-300">
-    <!-- Logo 區 -->
     <div class="p-6 border-b border-slate-800 flex items-center gap-3">
       <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50">
         <i class="ri-building-2-fill text-white"></i>
@@ -55,20 +52,20 @@
       </div>
     </div>
     
-    <!-- 選單區 -->
     <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
       <button onclick="switchView('form'); resetForm();" class="nav-btn w-full text-left px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition">
         <i class="ri-add-circle-line text-xl"></i> 新增申請
       </button>
-      <button onclick="switchView('list')" class="nav-btn w-full text-left px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition">
-        <i class="ri-file-list-3-line text-xl"></i> 預約清單
+      <button onclick="switchView('list')" class="nav-btn w-full text-left px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center justify-between transition group">
+        <div class="flex items-center gap-3"><i class="ri-file-list-3-line text-xl"></i> 預約清單</div>
+        <!-- 🔴 Sidebar Badge -->
+        <span id="pendingBadge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm group-hover:bg-white group-hover:text-rose-600">0</span>
       </button>
       <button id="exportCsvBtn" class="w-full text-left px-4 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition text-sm mt-4">
         <i class="ri-file-excel-line"></i> 匯出報表
       </button>
     </nav>
 
-    <!-- 系統切換連結 (新增部分) -->
     <div class="p-4 border-t border-slate-800 space-y-2 bg-slate-900">
         <div class="text-[10px] text-slate-500 font-bold px-4 mb-1 uppercase tracking-wider">系統切換</div>
         <a href="javascript:void(0)" onclick="location.href=OTHER_SYSTEM_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
@@ -80,117 +77,103 @@
     </div>
   </aside>
 
-  <!-- Main (主畫面) -->
+  <!-- Main -->
   <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-100">
-    
-    <!-- Header (手機版) -->
     <header class="md:hidden bg-white p-4 shadow-sm flex justify-between items-center z-20">
       <h1 class="font-bold text-slate-800 flex items-center gap-2">
         <i class="ri-building-2-fill text-indigo-600"></i> 場地預約
       </h1>
       <div class="flex gap-4 items-center">
-        <!-- 手機版回首頁按鈕 -->
-        <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="text-slate-400 hover:text-indigo-600">
-            <i class="ri-home-4-line text-xl"></i>
-        </a>
-        <button onclick="toggleMobileSidebar()" class="text-slate-600 p-2">
-            <i class="ri-menu-line text-xl"></i>
-        </button>
+        <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="text-slate-400 hover:text-indigo-600"><i class="ri-home-4-line text-xl"></i></a>
+        <button onclick="toggleMobileSidebar()" class="text-slate-600 p-2"><i class="ri-menu-line text-xl"></i></button>
       </div>
     </header>
 
     <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth">
       
-      <!-- View: Form (新增申請表單) -->
+      <!-- View: Form -->
       <div id="view-form" class="max-w-7xl mx-auto animate-fade-in grid lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
-          <div class="flex justify-between items-end">
-            <div>
-                <h2 id="formTitle" class="text-2xl font-bold text-slate-800">新增預約申請</h2>
-                <p class="text-slate-500 text-sm mt-1">請詳閱規範，送出後系統將自動寄信通知。</p>
+            
+            <!-- 🔴 新增：首頁待補照片提醒區塊 (顯示具體缺件) -->
+            <div id="todoSection" class="hidden bg-rose-50 border border-rose-100 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-rose-100 rounded-full -mr-8 -mt-8 opacity-50"></div>
+                <h3 class="font-bold text-rose-700 flex items-center gap-2 text-lg relative z-10">
+                    <i class="ri-alarm-warning-fill"></i> 待補照片提醒
+                </h3>
+                <p class="text-sm text-rose-600 mb-3 relative z-10">以下預約已核准但照片未齊全，請儘速處理：</p>
+                <div id="todoList" class="space-y-2 relative z-10 max-h-48 overflow-y-auto pr-2"></div>
             </div>
-            <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1">
-                <i class="ri-refresh-line"></i> 重新同步
-            </button>
-          </div>
+
+            <div class="flex justify-between items-end">
+                <div><h2 id="formTitle" class="text-2xl font-bold text-slate-800">新增預約申請</h2><p class="text-slate-500 text-sm mt-1">請詳閱規範，送出後系統將自動寄信通知。</p></div>
+                <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1"><i class="ri-refresh-line"></i> 重新同步</button>
+            </div>
           
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
-            <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
-            <form id="bookingForm" class="p-6 md:p-8 space-y-6">
-              <input type="hidden" id="editId">
-              <div class="space-y-4">
-                <div class="grid md:grid-cols-2 gap-4">
-                  <input id="unit" type="text" class="input-field" placeholder="借用單位 *" required>
-                  <input id="contact" type="text" class="input-field" placeholder="聯絡人姓名 *" required>
-                  <input id="phone" type="tel" class="input-field" placeholder="聯絡電話 *" required>
-                  <input id="email" type="email" class="input-field" placeholder="Email (接收通知用) *" required>
-                </div>
-              </div>
-              <hr class="border-slate-100">
-              <div class="space-y-4">
-                <select id="facility" class="input-field" required>
-                  <option value="" disabled selected>請選擇場地...</option>
-                  <optgroup label="教學區域"><option>教室701</option><option>教室702</option><option>教室703</option></optgroup>
-                  <optgroup label="實體訓練場"><option>空呼氣訓練場</option><option>燃燒櫃</option><option>燃燒室</option><option>大直訓練場</option><option>AB塔</option></optgroup>
-                  <option value="other">✏️ 其他 (自填)</option>
-                </select>
-                <input id="customFacility" type="text" class="input-field hidden" placeholder="請輸入場地名稱...">
-                <div class="grid md:grid-cols-3 gap-4 items-start">
-                  <div class="space-y-1"><input id="date" type="date" class="input-field" required></div>
-                  <div class="col-span-2 space-y-2">
-                    <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200">
-                      <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
-                      <label for="isAllDay" class="text-sm text-slate-700 font-medium cursor-pointer select-none">全天借用 (08:00 - 17:00)</label>
+            <!-- 表單內容 (維持原樣) -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                <form id="bookingForm" class="p-6 md:p-8 space-y-6">
+                    <input type="hidden" id="editId">
+                    <div class="space-y-4">
+                        <div class="grid md:grid-cols-2 gap-4">
+                        <input id="unit" type="text" class="input-field" placeholder="借用單位 *" required>
+                        <input id="contact" type="text" class="input-field" placeholder="聯絡人姓名 *" required>
+                        <input id="phone" type="tel" class="input-field" placeholder="聯絡電話 *" required>
+                        <input id="email" type="email" class="input-field" placeholder="Email (接收通知用) *" required>
+                        </div>
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                      <input id="startTime" type="time" class="input-field" required>
-                      <input id="endTime" type="time" class="input-field" required>
+                    <hr class="border-slate-100">
+                    <div class="space-y-4">
+                        <select id="facility" class="input-field" required>
+                        <option value="" disabled selected>請選擇場地...</option>
+                        <optgroup label="教學區域"><option>教室701</option><option>教室702</option><option>教室703</option></optgroup>
+                        <optgroup label="實體訓練場"><option>空呼氣訓練場</option><option>燃燒櫃</option><option>燃燒室</option><option>大直訓練場</option><option>AB塔</option></optgroup>
+                        <option value="other">✏️ 其他 (自填)</option>
+                        </select>
+                        <input id="customFacility" type="text" class="input-field hidden" placeholder="請輸入場地名稱...">
+                        <div class="grid md:grid-cols-3 gap-4 items-start">
+                        <div class="space-y-1"><input id="date" type="date" class="input-field" required></div>
+                        <div class="col-span-2 space-y-2">
+                            <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200">
+                            <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            <label for="isAllDay" class="text-sm text-slate-700 font-medium cursor-pointer select-none">全天借用 (08:00 - 17:00)</label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                            <input id="startTime" type="time" class="input-field" required>
+                            <input id="endTime" type="time" class="input-field" required>
+                            </div>
+                        </div>
+                        </div>
+                        <textarea id="purpose" rows="3" class="input-field" placeholder="用途說明..."></textarea>
                     </div>
-                  </div>
-                </div>
-                <textarea id="purpose" rows="3" class="input-field" placeholder="用途說明..."></textarea>
-              </div>
-              
-              <!-- 批次申請區塊 -->
-              <details id="batchSection" class="group bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <summary class="flex cursor-pointer items-center justify-between font-medium text-slate-600 text-sm">
-                    <span class="flex items-center gap-2"><i class="ri-calendar-todo-fill"></i> 多日/連續申請</span>
-                    <i class="ri-arrow-down-s-line group-open:rotate-180 transition"></i>
-                </summary>
-                <div class="grid grid-cols-2 gap-3 mt-3 border-t border-slate-200 pt-3">
-                  <div><label class="text-[10px] text-slate-400 font-bold">起始</label><input id="dateStart" type="date" class="input-field text-sm p-2"></div>
-                  <div><label class="text-[10px] text-slate-400 font-bold">結束</label><input id="dateEnd" type="date" class="input-field text-sm p-2"></div>
-                </div>
-                <div class="mt-2"><select id="dateMode" class="input-field text-sm py-1"><option value="all">連續日期 (含六日)</option><option value="weekday">排除週末</option><option value="weekend">僅限週末</option></select></div>
-              </details>
-              
-              <!-- 安全規範 -->
-              <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
-                <p id="safetyText" class="text-xs text-rose-600 mb-3 leading-relaxed">請先選擇場地...</p>
-                <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="safetyCheck" class="mt-1 w-4 h-4 text-rose-600 rounded" required><span class="text-xs text-rose-800 font-medium">我已詳閱並同意上述規範。</span></label>
-              </div>
-              
-              <div class="flex gap-2">
-                <button type="button" id="cancelEditBtn" class="hidden w-1/3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200">取消</button>
-                <button type="submit" id="submitBtn" class="w-full rounded-xl bg-slate-900 text-white py-3.5 text-sm font-bold shadow-lg hover:bg-indigo-600 transition-all">提交申請</button>
-              </div>
-            </form>
-          </div>
+                    <details id="batchSection" class="group bg-slate-50 rounded-xl border border-slate-200 p-4">
+                        <summary class="flex cursor-pointer items-center justify-between font-medium text-slate-600 text-sm"><span class="flex items-center gap-2"><i class="ri-calendar-todo-fill"></i> 多日/連續申請</span><i class="ri-arrow-down-s-line group-open:rotate-180 transition"></i></summary>
+                        <div class="grid grid-cols-2 gap-3 mt-3 border-t border-slate-200 pt-3">
+                        <div><label class="text-[10px] text-slate-400 font-bold">起始</label><input id="dateStart" type="date" class="input-field text-sm p-2"></div>
+                        <div><label class="text-[10px] text-slate-400 font-bold">結束</label><input id="dateEnd" type="date" class="input-field text-sm p-2"></div>
+                        </div>
+                        <div class="mt-2"><select id="dateMode" class="input-field text-sm py-1"><option value="all">連續日期 (含六日)</option><option value="weekday">排除週末</option><option value="weekend">僅限週末</option></select></div>
+                    </details>
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
+                        <p id="safetyText" class="text-xs text-rose-600 mb-3 leading-relaxed">請先選擇場地...</p>
+                        <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="safetyCheck" class="mt-1 w-4 h-4 text-rose-600 rounded" required><span class="text-xs text-rose-800 font-medium">我已詳閱並同意上述規範。</span></label>
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" id="cancelEditBtn" class="hidden w-1/3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200">取消</button>
+                        <button type="submit" id="submitBtn" class="w-full rounded-xl bg-slate-900 text-white py-3.5 text-sm font-bold shadow-lg hover:bg-indigo-600 transition-all">提交申請</button>
+                    </div>
+                </form>
+            </div>
         </div>
         
-        <!-- 右側資訊欄 -->
         <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-            <h3 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider"><i class="ri-calendar-2-line text-indigo-500"></i> 未來 7 天概況</h3>
-            <div id="weeklyNotice" class="space-y-3 max-h-[200px] overflow-y-auto pr-1"></div>
-          </div>
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-1 overflow-hidden">
-            <iframe id="calendarFrame" src="" style="border:0" width="100%" height="400" frameborder="0" scrolling="no"></iframe>
-          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"><h3 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider"><i class="ri-calendar-2-line text-indigo-500"></i> 未來 7 天概況</h3><div id="weeklyNotice" class="space-y-3 max-h-[200px] overflow-y-auto pr-1"></div></div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-1 overflow-hidden"><iframe id="calendarFrame" src="" style="border:0" width="100%" height="400" frameborder="0" scrolling="no"></iframe></div>
         </div>
       </div>
 
-      <!-- View: List (預約清單) -->
+      <!-- View: List -->
       <div id="view-list" class="max-w-6xl mx-auto hidden animate-fade-in">
          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[85vh]">
             <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
@@ -203,82 +186,22 @@
     </div>
   </main>
 
-  <!-- Modal: Cancel (取消申請彈窗) -->
-  <div id="cancelModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
-      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-          <h3 class="text-lg font-bold text-slate-800 mb-2">身分驗證</h3>
-          <form id="cancelForm" class="space-y-3">
-              <input type="hidden" id="cancelTargetId">
-              <input type="hidden" id="cancelType">
-              <input type="email" id="verifyEmail" class="input-field" placeholder="Email" required>
-              <textarea id="cancelReason" class="input-field" rows="2" placeholder="取消原因" required></textarea>
-              <div class="flex gap-2 pt-2">
-                  <button type="button" onclick="$('#cancelModal').classList.replace('flex','hidden')" class="flex-1 py-2 bg-gray-100 rounded-xl">關閉</button>
-                  <button type="submit" id="confirmCancelBtn" class="flex-1 py-2 bg-rose-600 text-white rounded-xl">送出</button>
-              </div>
-          </form>
-      </div>
-  </div>
+  <!-- Modals & Toast -->
+  <div id="cancelModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"><h3 class="text-lg font-bold text-slate-800 mb-2">身分驗證</h3><form id="cancelForm" class="space-y-3"><input type="hidden" id="cancelTargetId"><input type="hidden" id="cancelType"><input type="email" id="verifyEmail" class="input-field" placeholder="Email" required><textarea id="cancelReason" class="input-field" rows="2" placeholder="取消原因" required></textarea><div class="flex gap-2 pt-2"><button type="button" onclick="$('#cancelModal').classList.replace('flex','hidden')" class="flex-1 py-2 bg-gray-100 rounded-xl">關閉</button><button type="submit" id="confirmCancelBtn" class="flex-1 py-2 bg-rose-600 text-white rounded-xl">送出</button></div></form></div></div>
+  <div id="photoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"><h3 class="text-lg font-bold text-slate-800 mb-2">上傳紀錄照片</h3><p class="text-xs text-slate-500 mb-4">將自動壓縮至 800px 寬。</p><form id="photoForm" class="space-y-4"><input type="hidden" id="photoTargetId"><div class="grid grid-cols-3 gap-2"><label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="photoType" value="使用前" class="hidden" checked><div class="text-xs font-bold">使用前</div></label><label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="photoType" value="使用中" class="hidden"><div class="text-xs font-bold">使用中</div></label><label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="photoType" value="歸還後" class="hidden"><div class="text-xs font-bold">歸還後</div></label></div><input type="file" id="photoFile" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required><div id="photoPreview" class="w-full h-32 bg-slate-100 rounded-lg hidden bg-cover bg-center"></div><div id="progressText" class="text-xs text-center text-indigo-600 hidden"></div><button type="submit" id="uploadBtn" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700">開始上傳</button></form><button onclick="$('#photoModal').classList.replace('flex','hidden')" class="mt-2 w-full py-2 text-slate-400 text-sm hover:text-slate-600">取消</button></div></div>
+  <div id="toast" class="fixed bottom-8 right-8 px-6 py-4 bg-slate-800 text-white rounded-xl shadow-2xl flex items-center gap-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50"><div id="toastIcon"></div><div><h4 id="toastTitle" class="font-bold text-sm"></h4><p id="toastMsg" class="text-xs text-slate-300"></p></div></div>
 
-  <!-- Modal: Photo (照片上傳彈窗) -->
-  <div id="photoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
-    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
-      <h3 class="text-lg font-bold text-slate-800 mb-2">上傳紀錄照片</h3>
-      <p class="text-xs text-slate-500 mb-4">將自動壓縮至 800px 寬。</p>
-      <form id="photoForm" class="space-y-4">
-        <input type="hidden" id="photoTargetId">
-        <div class="grid grid-cols-3 gap-2">
-          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-            <input type="radio" name="photoType" value="使用前" class="hidden" checked><div class="text-xs font-bold">使用前</div>
-          </label>
-          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-            <input type="radio" name="photoType" value="使用中" class="hidden"><div class="text-xs font-bold">使用中</div>
-          </label>
-          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
-            <input type="radio" name="photoType" value="歸還後" class="hidden"><div class="text-xs font-bold">歸還後</div>
-          </label>
-        </div>
-        <input type="file" id="photoFile" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required>
-        <div id="photoPreview" class="w-full h-32 bg-slate-100 rounded-lg hidden bg-cover bg-center"></div>
-        <div id="progressText" class="text-xs text-center text-indigo-600 hidden"></div>
-        <button type="submit" id="uploadBtn" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700">開始上傳</button>
-      </form>
-      <button onclick="$('#photoModal').classList.replace('flex','hidden')" class="mt-2 w-full py-2 text-slate-400 text-sm hover:text-slate-600">取消</button>
-    </div>
-  </div>
-
-  <!-- Toast (通知訊息) -->
-  <div id="toast" class="fixed bottom-8 right-8 px-6 py-4 bg-slate-800 text-white rounded-xl shadow-2xl flex items-center gap-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
-      <div id="toastIcon"></div>
-      <div>
-          <h4 id="toastTitle" class="font-bold text-sm"></h4>
-          <p id="toastMsg" class="text-xs text-slate-300"></p>
-      </div>
-  </div>
-
-  <!-- Javascript 邏輯 (完全保留原功能) -->
   <script>
     const $ = (s) => document.querySelector(s);
     let dbData = []; 
-    
-    // 手機版側邊欄切換
-    function toggleMobileSidebar() {
-        const a = $('aside');
-        a.classList.toggle('hidden');
-        a.classList.toggle('absolute');
-        a.classList.toggle('h-full');
-    }
+    function toggleMobileSidebar() { const a = $('aside'); a.classList.toggle('hidden'); a.classList.toggle('absolute'); a.classList.toggle('h-full'); }
 
-    // 初始化
     $('#calendarFrame').src = CALENDAR_EMBED_URL;
     $('#date').value = new Date().toISOString().slice(0,10);
     fetchData();
 
-    // 安全規範文字
     const SAFETY_HIGH = "⚠️ 依內政部消防署109年9月29日消署訓字第1091700957號函頒「消防機關辦理各項救災訓練安全管理指導原則」辦理，請指派資深教官負責全盤訓練安全事宜。\n⚠️ 借用單位請於訓後將場地復原並維持場地整潔。";
     const SAFETY_LOW = "⚠️ 請借用單位訓後將場地復原並維持場地整潔。";
-    
-    // 場地選擇變更事件
     $('#facility').addEventListener('change', (e) => {
       const val = e.target.value; const customInput = $('#customFacility');
       if(val === 'other') { customInput.classList.remove('hidden'); customInput.required = true; } else { customInput.classList.add('hidden'); customInput.required = false; }
@@ -286,20 +209,75 @@
       $('#safetyText').innerText = isHigh ? SAFETY_HIGH : SAFETY_LOW;
     });
     $('#safetyText').innerText = SAFETY_LOW;
-
-    // 全天借用開關
     $('#isAllDay').addEventListener('change', (e) => {
       const s = $('#startTime'), eEnd = $('#endTime');
       if(e.target.checked) { s.value="08:00"; eEnd.value="17:00"; s.classList.add('disabled-input'); eEnd.classList.add('disabled-input'); } else { s.classList.remove('disabled-input'); eEnd.classList.remove('disabled-input'); }
     });
 
-    // 從 GAS 獲取資料
     async function fetchData() {
-       try { const res = await fetch(GAS_ENDPOINT); dbData = await res.json(); updateWeeklyNotice(); renderList(); showToast('同步完成','資料已更新','success'); } catch(e){}
+       try { 
+           const res = await fetch(GAS_ENDPOINT); 
+           dbData = await res.json(); 
+           updateWeeklyNotice(); 
+           renderList();
+           renderTodo(); // 呼叫待辦事項
+           showToast('同步完成','資料已更新','success'); 
+       } catch(e){}
     }
     $('#syncBtn').onclick = fetchData;
 
-    // 更新每週概況
+    // Helper: 判斷缺哪些照片
+    function getMissingParts(statusStr) {
+        const missing = [];
+        if (!statusStr.includes('使用前')) missing.push('前');
+        if (!statusStr.includes('使用中')) missing.push('中');
+        if (!statusStr.includes('歸還後')) missing.push('後');
+        return missing;
+    }
+
+    // 🔴 渲染待補照片的提醒區塊
+    function renderTodo() {
+        const todoContainer = $('#todoList');
+        const todoSection = $('#todoSection');
+        const badge = $('#pendingBadge');
+        const today = new Date().toISOString().slice(0,10);
+        
+        // 篩選：已核准 + (今天或過去) + 照片未齊全
+        const pendingItems = dbData.filter(x => {
+            if(!x.status.includes('已核准')) return false;
+            if(x.date > today) return false; // 未來的不算
+            const s = x.uploadStatus || "";
+            return !(s.includes("使用前") && s.includes("使用中") && s.includes("歸還後"));
+        });
+
+        // 更新 Sidebar Badge
+        if (pendingItems.length > 0) {
+            badge.innerText = pendingItems.length;
+            badge.classList.remove('hidden');
+            todoSection.classList.remove('hidden');
+        } else {
+            badge.classList.add('hidden');
+            todoSection.classList.add('hidden');
+            return;
+        }
+
+        // 渲染首頁列表
+        todoContainer.innerHTML = pendingItems.map(item => {
+            const missing = getMissingParts(item.uploadStatus || "");
+            const missingText = missing.join('、');
+            return `
+            <div class="flex items-center justify-between bg-white p-2.5 rounded-lg border border-rose-100 shadow-sm">
+                <div class="flex flex-col">
+                    <div class="text-xs font-bold text-slate-700">${item.date} ${item.facility}</div>
+                    <div class="text-[10px] text-rose-600 font-bold">❌ 缺：${missingText}</div>
+                </div>
+                <button onclick="switchView('list'); openPhotoModal('${item.id}')" class="text-xs bg-rose-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-rose-700 shadow-md btn-alert">
+                    <i class="ri-camera-fill"></i> 上傳
+                </button>
+            </div>
+        `}).join('');
+    }
+
     function updateWeeklyNotice() {
       const con = $('#weeklyNotice'); con.innerHTML=''; let has=false;
       for(let i=0;i<7;i++){
@@ -310,7 +288,6 @@
       if(!has) con.innerHTML='<div class="text-sm text-slate-400 py-4 text-center">未來 7 天無核准預約</div>';
     }
 
-    // 提交申請表單
     $('#bookingForm').addEventListener('submit', async e => {
       e.preventDefault();
       if($('#endTime').value <= $('#startTime').value) { alert('時間錯誤'); return; }
@@ -340,7 +317,6 @@
       setTimeout(fetchData, 2500); $('#submitBtn').innerHTML = '提交申請';
     });
 
-    // 照片預覽與壓縮邏輯
     $('#photoFile').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if(file){ const reader = new FileReader(); reader.onload = (e) => { $('#photoPreview').style.backgroundImage = `url(${e.target.result})`; $('#photoPreview').classList.remove('hidden'); }; reader.readAsDataURL(file); }
@@ -368,16 +344,15 @@
           const img = new Image(); img.src = e.target.result;
           img.onload = () => {
             const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d');
-            const scale = 800 / img.width; // 強制縮到 800px
+            const scale = 800 / img.width; 
             canvas.width = scale < 1 ? 800 : img.width; canvas.height = scale < 1 ? img.height * scale : img.height;
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            resolve(canvas.toDataURL('image/jpeg', 0.6)); // 品質 0.6
+            resolve(canvas.toDataURL('image/jpeg', 0.6)); 
           };
         };
       });
     }
 
-    // 編輯與重置邏輯
     window.editRecord = (id) => {
       const r = dbData.find(x => x.id === id); if(!r) return;
       $('#editId').value = r.id; $('#unit').value = r.unit; $('#contact').value = r.contact; $('#phone').value = r.phone; $('#email').value = r.email; $('#facility').value = r.facility; $('#purpose').value = r.purpose; $('#date').value = r.date; $('#startTime').value = r.startTime; $('#endTime').value = r.endTime;
@@ -387,8 +362,6 @@
     function resetForm() {
       $('#bookingForm').reset(); $('#editId').value = ""; $('#date').value = new Date().toISOString().slice(0,10); $('#facility').value = ""; $('#customFacility').classList.add('hidden'); $('#formTitle').textContent = "新增預約申請"; $('#submitBtn').innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請"; $('#submitBtn').classList.replace('bg-emerald-600', 'bg-slate-900'); $('#cancelEditBtn').classList.add('hidden'); $('#batchSection').classList.remove('hidden'); $('#isAllDay').checked = false; $('#startTime').classList.remove('disabled-input'); $('#startTime').readOnly = false; $('#endTime').classList.remove('disabled-input'); $('#endTime').readOnly = false; $('#safetyText').innerText = SAFETY_LOW;
     }
-
-    // 取消申請邏輯
     window.openCancelModal = (id, isBatch) => { $('#cancelTargetId').value = id; $('#cancelType').value = isBatch ? 'batch' : 'single'; $('#verifyEmail').value = ''; $('#cancelReason').value = ''; $('#cancelModal').classList.replace('hidden','flex'); };
     $('#cancelForm').addEventListener('submit', async (e) => {
       e.preventDefault(); const btn = $('#confirmCancelBtn'); btn.innerHTML = '驗證中...';
@@ -398,7 +371,6 @@
       } catch(err){ showToast('錯誤','','error'); } finally { btn.innerHTML = '送出申請'; }
     });
 
-    // 渲染清單 (紅綠燈/Badge邏輯)
     function renderList() {
       const container = $('#bookingListContainer'); container.innerHTML='';
       const filter = $('#searchInput').value.toLowerCase();
@@ -414,14 +386,29 @@
         const items = groups[key]; const f = items[0]; const isMulti = items.length > 1;
         const color = f.status.includes("核准") ? "text-emerald-600 bg-emerald-50" : (f.status.includes("撞期") ? "text-rose-600 bg-rose-50" : "text-amber-600 bg-amber-50");
         
+        // 🔴 新增：在卡片外層判斷是否缺照片 (詳細列出缺件)
+        let missingPhotoInfo = '';
+        if(f.status.includes("核准") && f.date <= today) {
+            const anyMissing = items.some(item => {
+                const s = item.uploadStatus || "";
+                return !(s.includes("使用前") && s.includes("使用中") && s.includes("歸還後"));
+            });
+            if(anyMissing) {
+                // 找出第一筆缺的作為代表 (因為外層是群組)
+                const missingParts = getMissingParts(items[0].uploadStatus || ""); 
+                const missingText = missingParts.join('、');
+                missingPhotoInfo = `<div class="ml-2 flex items-center gap-2"><span class="text-xs text-rose-600 font-bold">尚缺: ${missingText}</span><button onclick="event.stopPropagation(); this.closest('.card-root').querySelector('.details-panel').classList.remove('hidden');" class="bg-rose-600 text-white text-xs px-2 py-1 rounded shadow btn-alert"><i class="ri-camera-fill"></i></button></div>`;
+            }
+        }
+
         const card = document.createElement('div');
-        card.className = "bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-3";
+        card.className = "card-root bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-3";
         card.innerHTML = `
           <div class="p-4 flex items-center justify-between cursor-pointer bg-white hover:bg-gray-50" onclick="this.nextElementSibling.classList.toggle('hidden')">
             <div class="flex items-center gap-3">
               <div class="w-10 h-10 rounded-full flex items-center justify-center ${color} font-bold"><i class="ri-calendar-check-line"></i></div>
               <div>
-                <div class="font-bold text-slate-800 flex items-center gap-2">${f.unit} <span class="text-xs font-normal text-slate-500">(${f.contact})</span></div>
+                <div class="font-bold text-slate-800 flex items-center gap-2">${f.unit} <span class="text-xs font-normal text-slate-500">(${f.contact})</span> ${missingPhotoInfo}</div>
                 <div class="text-xs text-slate-500 mt-0.5">${isMulti ? `<span class="bg-slate-100 px-1.5 py-0.5 rounded font-mono mr-1">共${items.length}天</span>` : ''} ${f.date} · ${f.facility}</div>
               </div>
             </div>
@@ -431,16 +418,21 @@
               <i class="ri-arrow-down-s-line text-slate-400"></i>
             </div>
           </div>
-          <div class="hidden border-t border-slate-100 bg-slate-50 p-3 space-y-2">
+          <div class="details-panel hidden border-t border-slate-100 bg-slate-50 p-3 space-y-2">
             ${items.map(item => {
               const statusStr = item.uploadStatus || "";
               const isComplete = statusStr.includes("使用前") && statusStr.includes("使用中") && statusStr.includes("歸還後");
               let photoBadge = '';
+              let uploadBtnClass = "text-indigo-500 hover:bg-indigo-50 p-1 rounded"; 
+              
               if (item.status.includes('核准')) {
                 if (item.date > today) photoBadge = `<span class="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded">未開始</span>`;
                 else if (isComplete) photoBadge = `<span class="text-xs text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">● 已結案</span>`;
                 else if (item.date === today) photoBadge = `<span class="text-xs text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">● 進行中</span>`;
-                else photoBadge = `<span class="text-xs text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded">● 缺件</span>`;
+                else {
+                    photoBadge = `<span class="text-xs text-rose-600 bg-rose-100 px-1.5 py-0.5 rounded font-bold">● 缺件</span>`;
+                    uploadBtnClass = "bg-rose-600 text-white p-1.5 rounded shadow btn-alert hover:bg-rose-700"; 
+                }
               }
 
               return `<div class="flex flex-col gap-2 bg-white p-2 rounded border border-slate-200">
@@ -451,8 +443,8 @@
                     <span class="text-slate-500 text-xs">${item.status}</span>
                     ${photoBadge}
                   </div>
-                  <div class="flex gap-2">
-                    ${(item.status.includes('核准')) ? `<button onclick="openPhotoModal('${item.id}')" class="text-indigo-500 hover:bg-indigo-50 p-1 rounded" title="上傳照片"><i class="ri-camera-line text-lg"></i></button>` : ''}
+                  <div class="flex gap-2 items-center">
+                    ${(item.status.includes('核准')) ? `<button onclick="openPhotoModal('${item.id}')" class="${uploadBtnClass}" title="上傳照片"><i class="ri-camera-line text-lg"></i> ${!isComplete && item.date <= today ? '<span class="text-xs ml-1">上傳</span>':''}</button>` : ''}
                     ${(item.status.includes('待審核')||item.status.includes('撞期')) ? `<button onclick="editRecord('${item.id}')" class="text-indigo-500 hover:bg-indigo-50 p-1 rounded"><i class="ri-edit-line"></i></button>` : ''}
                     <button onclick="openCancelModal('${item.id}', false)" class="text-rose-500 hover:bg-rose-50 p-1 rounded"><i class="ri-close-circle-line"></i></button>
                   </div>
@@ -465,14 +457,9 @@
       });
     }
     
-    // 搜尋與匯出功能
     $('#searchInput').addEventListener('input', renderList);
     $('#exportCsvBtn').onclick = () => { if(!dbData.length) return; const csv='\ufeff狀態,日期,開始,結束,場地,單位\n'+dbData.map(r=>`${r.status},${r.date},${r.startTime},${r.endTime},"${r.facility}","${r.unit}"`).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='Booking.csv'; a.click(); };
-    
-    // Toast 通知
     function showToast(t,m,type){ const o=$('#toast'); $('#toastTitle').textContent=t; $('#toastMsg').textContent=m; $('#toastIcon').className=`text-2xl ri-${type==='success'?'checkbox-circle-fill text-emerald-400':'error-warning-fill text-rose-400'}`; o.classList.remove('translate-y-20','opacity-0'); setTimeout(()=>o.classList.add('translate-y-20','opacity-0'),3000); }
-    
-    // 頁面切換 helper
     window.switchView=(v)=>{ document.querySelectorAll('[id^="view-"]').forEach(e=>e.classList.add('hidden')); $('#view-'+v).classList.remove('hidden'); };
   </script>
 </body>
