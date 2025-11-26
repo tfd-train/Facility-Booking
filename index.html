@@ -4,52 +4,116 @@
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
   <title>場地借用管理系統</title>
+  <!-- 引入 Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Remix Icon -->
   <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
     body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+    
+    /* 自訂捲軸樣式 */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    
+    /* 輸入框通用樣式 */
+    .input-field { width: 100%; border-radius: 0.5rem; border: 1px solid #e2e8f0; padding: 0.6rem; font-size: 0.875rem; transition: all 0.2s; } 
+    .input-field:focus { border-color: #6366f1; outline: 2px solid #e0e7ff; } 
+    .disabled-input { background-color: #f3f4f6; color: #9ca3af; pointer-events: none; }
+    
+    /* 手機版側邊欄定位修正 */
+    aside.absolute { bottom: 0; } 
   </style>
+
   <script>
-    // ⚠️ 1. 請更新為您的新 GAS 網址
+    // ==========================================
+    // ⚠️ 1. 請填入您的 Google Apps Script 網址
     const GAS_ENDPOINT = "https://script.google.com/macros/s/AKfycbxqU02xkBw0BFXNHvUT2n5Ql9CagnS7xjaRwBJmWnQQx4cZeP_mgzmDuDpInPDapLAoow/exec";
+    
     // ⚠️ 2. 日曆網址
     const CALENDAR_EMBED_URL = "https://calendar.google.com/calendar/embed?src=02c213a0408b579568583642708285d69e8a9c62cb232cb3c1e7aa2d135d33d4%40group.calendar.google.com&ctz=Asia%2FTaipei"; 
+    
+    // ⚠️ 3. 系統整合連結 (請修改為您真實的 GitHub Pages 網址)
+    const PORTAL_URL = "https://您的帳號.github.io/您的入口網站Repo/"; 
+    const OTHER_SYSTEM_URL = "https://您的帳號.github.io/您的訓練流路Repo/";
+    // ==========================================
   </script>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen overflow-hidden flex selection:bg-indigo-500 selection:text-white">
 
-  <!-- Sidebar -->
-  <aside class="w-64 bg-slate-900 text-white hidden md:flex flex-col shadow-2xl z-20">
+  <!-- Sidebar (側邊欄) -->
+  <aside class="w-64 bg-slate-900 text-white hidden md:flex flex-col shadow-2xl z-30 transition-all duration-300">
+    <!-- Logo 區 -->
     <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-      <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50"><i class="ri-building-2-fill text-white"></i></div>
-      <div><h1 class="font-bold text-lg tracking-wide">場地預約</h1><p class="text-xs text-slate-400">訓練中心內部系統</p></div>
+      <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50">
+        <i class="ri-building-2-fill text-white"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg tracking-wide">場地預約</h1>
+        <p class="text-xs text-slate-400">訓練中心內部系統</p>
+      </div>
     </div>
+    
+    <!-- 選單區 -->
     <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-      <button onclick="switchView('form'); resetForm();" class="nav-btn w-full text-left px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition"><i class="ri-add-circle-line text-xl"></i> 新增申請</button>
-      <button onclick="switchView('list')" class="nav-btn w-full text-left px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition"><i class="ri-file-list-3-line text-xl"></i> 預約清單</button>
-      <button id="exportCsvBtn" class="w-full text-left px-4 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition text-sm mt-4"><i class="ri-file-excel-line"></i> 匯出報表</button>
+      <button onclick="switchView('form'); resetForm();" class="nav-btn w-full text-left px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition">
+        <i class="ri-add-circle-line text-xl"></i> 新增申請
+      </button>
+      <button onclick="switchView('list')" class="nav-btn w-full text-left px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition">
+        <i class="ri-file-list-3-line text-xl"></i> 預約清單
+      </button>
+      <button id="exportCsvBtn" class="w-full text-left px-4 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition text-sm mt-4">
+        <i class="ri-file-excel-line"></i> 匯出報表
+      </button>
     </nav>
+
+    <!-- 系統切換連結 (新增部分) -->
+    <div class="p-4 border-t border-slate-800 space-y-2 bg-slate-900">
+        <div class="text-[10px] text-slate-500 font-bold px-4 mb-1 uppercase tracking-wider">系統切換</div>
+        <a href="javascript:void(0)" onclick="location.href=OTHER_SYSTEM_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
+            <i class="ri-flow-chart text-lg text-blue-400"></i> 訓練流路系統
+        </a>
+        <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="flex items-center gap-3 px-4 py-2 rounded-xl text-slate-500 hover:text-white transition text-xs">
+            <i class="ri-arrow-left-line"></i> 回整合首頁
+        </a>
+    </div>
   </aside>
 
-  <!-- Main -->
+  <!-- Main (主畫面) -->
   <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-100">
+    
+    <!-- Header (手機版) -->
     <header class="md:hidden bg-white p-4 shadow-sm flex justify-between items-center z-20">
-      <h1 class="font-bold text-slate-800 flex items-center gap-2"><i class="ri-building-2-fill text-indigo-600"></i> 場地預約</h1>
-      <button onclick="$('aside').classList.toggle('hidden'); $('aside').classList.toggle('absolute'); $('aside').classList.toggle('h-full');" class="text-slate-600 p-2"><i class="ri-menu-line text-xl"></i></button>
+      <h1 class="font-bold text-slate-800 flex items-center gap-2">
+        <i class="ri-building-2-fill text-indigo-600"></i> 場地預約
+      </h1>
+      <div class="flex gap-4 items-center">
+        <!-- 手機版回首頁按鈕 -->
+        <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="text-slate-400 hover:text-indigo-600">
+            <i class="ri-home-4-line text-xl"></i>
+        </a>
+        <button onclick="toggleMobileSidebar()" class="text-slate-600 p-2">
+            <i class="ri-menu-line text-xl"></i>
+        </button>
+      </div>
     </header>
 
     <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth">
       
-      <!-- Form -->
+      <!-- View: Form (新增申請表單) -->
       <div id="view-form" class="max-w-7xl mx-auto animate-fade-in grid lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
           <div class="flex justify-between items-end">
-            <div><h2 id="formTitle" class="text-2xl font-bold text-slate-800">新增預約申請</h2><p class="text-slate-500 text-sm mt-1">請詳閱規範，送出後系統將自動寄信通知。</p></div>
-            <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1"><i class="ri-refresh-line"></i> 重新同步</button>
+            <div>
+                <h2 id="formTitle" class="text-2xl font-bold text-slate-800">新增預約申請</h2>
+                <p class="text-slate-500 text-sm mt-1">請詳閱規範，送出後系統將自動寄信通知。</p>
+            </div>
+            <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1">
+                <i class="ri-refresh-line"></i> 重新同步
+            </button>
           </div>
+          
           <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
             <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
             <form id="bookingForm" class="p-6 md:p-8 space-y-6">
@@ -86,18 +150,26 @@
                 </div>
                 <textarea id="purpose" rows="3" class="input-field" placeholder="用途說明..."></textarea>
               </div>
+              
+              <!-- 批次申請區塊 -->
               <details id="batchSection" class="group bg-slate-50 rounded-xl border border-slate-200 p-4">
-                <summary class="flex cursor-pointer items-center justify-between font-medium text-slate-600 text-sm"><span class="flex items-center gap-2"><i class="ri-calendar-todo-fill"></i> 多日/連續申請</span><i class="ri-arrow-down-s-line group-open:rotate-180 transition"></i></summary>
+                <summary class="flex cursor-pointer items-center justify-between font-medium text-slate-600 text-sm">
+                    <span class="flex items-center gap-2"><i class="ri-calendar-todo-fill"></i> 多日/連續申請</span>
+                    <i class="ri-arrow-down-s-line group-open:rotate-180 transition"></i>
+                </summary>
                 <div class="grid grid-cols-2 gap-3 mt-3 border-t border-slate-200 pt-3">
                   <div><label class="text-[10px] text-slate-400 font-bold">起始</label><input id="dateStart" type="date" class="input-field text-sm p-2"></div>
                   <div><label class="text-[10px] text-slate-400 font-bold">結束</label><input id="dateEnd" type="date" class="input-field text-sm p-2"></div>
                 </div>
                 <div class="mt-2"><select id="dateMode" class="input-field text-sm py-1"><option value="all">連續日期 (含六日)</option><option value="weekday">排除週末</option><option value="weekend">僅限週末</option></select></div>
               </details>
+              
+              <!-- 安全規範 -->
               <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
                 <p id="safetyText" class="text-xs text-rose-600 mb-3 leading-relaxed">請先選擇場地...</p>
                 <label class="flex items-start gap-2 cursor-pointer"><input type="checkbox" id="safetyCheck" class="mt-1 w-4 h-4 text-rose-600 rounded" required><span class="text-xs text-rose-800 font-medium">我已詳閱並同意上述規範。</span></label>
               </div>
+              
               <div class="flex gap-2">
                 <button type="button" id="cancelEditBtn" class="hidden w-1/3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200">取消</button>
                 <button type="submit" id="submitBtn" class="w-full rounded-xl bg-slate-900 text-white py-3.5 text-sm font-bold shadow-lg hover:bg-indigo-600 transition-all">提交申請</button>
@@ -105,13 +177,20 @@
             </form>
           </div>
         </div>
+        
+        <!-- 右側資訊欄 -->
         <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6"><h3 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider"><i class="ri-calendar-2-line text-indigo-500"></i> 未來 7 天概況</h3><div id="weeklyNotice" class="space-y-3 max-h-[200px] overflow-y-auto pr-1"></div></div>
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-1 overflow-hidden"><iframe id="calendarFrame" src="" style="border:0" width="100%" height="400" frameborder="0" scrolling="no"></iframe></div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider"><i class="ri-calendar-2-line text-indigo-500"></i> 未來 7 天概況</h3>
+            <div id="weeklyNotice" class="space-y-3 max-h-[200px] overflow-y-auto pr-1"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-1 overflow-hidden">
+            <iframe id="calendarFrame" src="" style="border:0" width="100%" height="400" frameborder="0" scrolling="no"></iframe>
+          </div>
         </div>
       </div>
 
-      <!-- List -->
+      <!-- View: List (預約清單) -->
       <div id="view-list" class="max-w-6xl mx-auto hidden animate-fade-in">
          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[85vh]">
             <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
@@ -124,10 +203,24 @@
     </div>
   </main>
 
-  <!-- Modal: Cancel -->
-  <div id="cancelModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm"><div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm"><h3 class="text-lg font-bold text-slate-800 mb-2">身分驗證</h3><form id="cancelForm" class="space-y-3"><input type="hidden" id="cancelTargetId"><input type="hidden" id="cancelType"><input type="email" id="verifyEmail" class="input-field" placeholder="Email" required><textarea id="cancelReason" class="input-field" rows="2" placeholder="取消原因" required></textarea><div class="flex gap-2 pt-2"><button type="button" onclick="$('#cancelModal').classList.replace('flex','hidden')" class="flex-1 py-2 bg-gray-100 rounded-xl">關閉</button><button type="submit" id="confirmCancelBtn" class="flex-1 py-2 bg-rose-600 text-white rounded-xl">送出</button></div></form></div></div>
+  <!-- Modal: Cancel (取消申請彈窗) -->
+  <div id="cancelModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+          <h3 class="text-lg font-bold text-slate-800 mb-2">身分驗證</h3>
+          <form id="cancelForm" class="space-y-3">
+              <input type="hidden" id="cancelTargetId">
+              <input type="hidden" id="cancelType">
+              <input type="email" id="verifyEmail" class="input-field" placeholder="Email" required>
+              <textarea id="cancelReason" class="input-field" rows="2" placeholder="取消原因" required></textarea>
+              <div class="flex gap-2 pt-2">
+                  <button type="button" onclick="$('#cancelModal').classList.replace('flex','hidden')" class="flex-1 py-2 bg-gray-100 rounded-xl">關閉</button>
+                  <button type="submit" id="confirmCancelBtn" class="flex-1 py-2 bg-rose-600 text-white rounded-xl">送出</button>
+              </div>
+          </form>
+      </div>
+  </div>
 
-  <!-- Modal: Photo -->
+  <!-- Modal: Photo (照片上傳彈窗) -->
   <div id="photoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
       <h3 class="text-lg font-bold text-slate-800 mb-2">上傳紀錄照片</h3>
@@ -135,9 +228,15 @@
       <form id="photoForm" class="space-y-4">
         <input type="hidden" id="photoTargetId">
         <div class="grid grid-cols-3 gap-2">
-          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="photoType" value="使用前" class="hidden" checked><div class="text-xs font-bold">使用前</div></label>
-          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="photoType" value="使用中" class="hidden"><div class="text-xs font-bold">使用中</div></label>
-          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50"><input type="radio" name="photoType" value="歸還後" class="hidden"><div class="text-xs font-bold">歸還後</div></label>
+          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+            <input type="radio" name="photoType" value="使用前" class="hidden" checked><div class="text-xs font-bold">使用前</div>
+          </label>
+          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+            <input type="radio" name="photoType" value="使用中" class="hidden"><div class="text-xs font-bold">使用中</div>
+          </label>
+          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+            <input type="radio" name="photoType" value="歸還後" class="hidden"><div class="text-xs font-bold">歸還後</div>
+          </label>
         </div>
         <input type="file" id="photoFile" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required>
         <div id="photoPreview" class="w-full h-32 bg-slate-100 rounded-lg hidden bg-cover bg-center"></div>
@@ -148,18 +247,38 @@
     </div>
   </div>
 
-  <div id="toast" class="fixed bottom-8 right-8 px-6 py-4 bg-slate-800 text-white rounded-xl shadow-2xl flex items-center gap-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50"><div id="toastIcon"></div><div><h4 id="toastTitle" class="font-bold text-sm"></h4><p id="toastMsg" class="text-xs text-slate-300"></p></div></div>
-  <style>.input-field { width: 100%; border-radius: 0.5rem; border: 1px solid #e2e8f0; padding: 0.6rem; font-size: 0.875rem; transition: all 0.2s; } .input-field:focus { border-color: #6366f1; outline: 2px solid #e0e7ff; } .disabled-input { background-color: #f3f4f6; color: #9ca3af; pointer-events: none; }</style>
+  <!-- Toast (通知訊息) -->
+  <div id="toast" class="fixed bottom-8 right-8 px-6 py-4 bg-slate-800 text-white rounded-xl shadow-2xl flex items-center gap-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+      <div id="toastIcon"></div>
+      <div>
+          <h4 id="toastTitle" class="font-bold text-sm"></h4>
+          <p id="toastMsg" class="text-xs text-slate-300"></p>
+      </div>
+  </div>
 
+  <!-- Javascript 邏輯 (完全保留原功能) -->
   <script>
     const $ = (s) => document.querySelector(s);
     let dbData = []; 
+    
+    // 手機版側邊欄切換
+    function toggleMobileSidebar() {
+        const a = $('aside');
+        a.classList.toggle('hidden');
+        a.classList.toggle('absolute');
+        a.classList.toggle('h-full');
+    }
+
+    // 初始化
     $('#calendarFrame').src = CALENDAR_EMBED_URL;
     $('#date').value = new Date().toISOString().slice(0,10);
     fetchData();
 
+    // 安全規範文字
     const SAFETY_HIGH = "⚠️ 依內政部消防署109年9月29日消署訓字第1091700957號函頒「消防機關辦理各項救災訓練安全管理指導原則」辦理，請指派資深教官負責全盤訓練安全事宜。\n⚠️ 借用單位請於訓後將場地復原並維持場地整潔。";
     const SAFETY_LOW = "⚠️ 請借用單位訓後將場地復原並維持場地整潔。";
+    
+    // 場地選擇變更事件
     $('#facility').addEventListener('change', (e) => {
       const val = e.target.value; const customInput = $('#customFacility');
       if(val === 'other') { customInput.classList.remove('hidden'); customInput.required = true; } else { customInput.classList.add('hidden'); customInput.required = false; }
@@ -168,16 +287,19 @@
     });
     $('#safetyText').innerText = SAFETY_LOW;
 
+    // 全天借用開關
     $('#isAllDay').addEventListener('change', (e) => {
       const s = $('#startTime'), eEnd = $('#endTime');
       if(e.target.checked) { s.value="08:00"; eEnd.value="17:00"; s.classList.add('disabled-input'); eEnd.classList.add('disabled-input'); } else { s.classList.remove('disabled-input'); eEnd.classList.remove('disabled-input'); }
     });
 
+    // 從 GAS 獲取資料
     async function fetchData() {
        try { const res = await fetch(GAS_ENDPOINT); dbData = await res.json(); updateWeeklyNotice(); renderList(); showToast('同步完成','資料已更新','success'); } catch(e){}
     }
     $('#syncBtn').onclick = fetchData;
 
+    // 更新每週概況
     function updateWeeklyNotice() {
       const con = $('#weeklyNotice'); con.innerHTML=''; let has=false;
       for(let i=0;i<7;i++){
@@ -188,6 +310,7 @@
       if(!has) con.innerHTML='<div class="text-sm text-slate-400 py-4 text-center">未來 7 天無核准預約</div>';
     }
 
+    // 提交申請表單
     $('#bookingForm').addEventListener('submit', async e => {
       e.preventDefault();
       if($('#endTime').value <= $('#startTime').value) { alert('時間錯誤'); return; }
@@ -217,7 +340,7 @@
       setTimeout(fetchData, 2500); $('#submitBtn').innerHTML = '提交申請';
     });
 
-    // 照片相關
+    // 照片預覽與壓縮邏輯
     $('#photoFile').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if(file){ const reader = new FileReader(); reader.onload = (e) => { $('#photoPreview').style.backgroundImage = `url(${e.target.result})`; $('#photoPreview').classList.remove('hidden'); }; reader.readAsDataURL(file); }
@@ -254,6 +377,7 @@
       });
     }
 
+    // 編輯與重置邏輯
     window.editRecord = (id) => {
       const r = dbData.find(x => x.id === id); if(!r) return;
       $('#editId').value = r.id; $('#unit').value = r.unit; $('#contact').value = r.contact; $('#phone').value = r.phone; $('#email').value = r.email; $('#facility').value = r.facility; $('#purpose').value = r.purpose; $('#date').value = r.date; $('#startTime').value = r.startTime; $('#endTime').value = r.endTime;
@@ -263,6 +387,8 @@
     function resetForm() {
       $('#bookingForm').reset(); $('#editId').value = ""; $('#date').value = new Date().toISOString().slice(0,10); $('#facility').value = ""; $('#customFacility').classList.add('hidden'); $('#formTitle').textContent = "新增預約申請"; $('#submitBtn').innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請"; $('#submitBtn').classList.replace('bg-emerald-600', 'bg-slate-900'); $('#cancelEditBtn').classList.add('hidden'); $('#batchSection').classList.remove('hidden'); $('#isAllDay').checked = false; $('#startTime').classList.remove('disabled-input'); $('#startTime').readOnly = false; $('#endTime').classList.remove('disabled-input'); $('#endTime').readOnly = false; $('#safetyText').innerText = SAFETY_LOW;
     }
+
+    // 取消申請邏輯
     window.openCancelModal = (id, isBatch) => { $('#cancelTargetId').value = id; $('#cancelType').value = isBatch ? 'batch' : 'single'; $('#verifyEmail').value = ''; $('#cancelReason').value = ''; $('#cancelModal').classList.replace('hidden','flex'); };
     $('#cancelForm').addEventListener('submit', async (e) => {
       e.preventDefault(); const btn = $('#confirmCancelBtn'); btn.innerHTML = '驗證中...';
@@ -272,7 +398,7 @@
       } catch(err){ showToast('錯誤','','error'); } finally { btn.innerHTML = '送出申請'; }
     });
 
-    // 渲染邏輯 (紅綠燈稽核)
+    // 渲染清單 (紅綠燈/Badge邏輯)
     function renderList() {
       const container = $('#bookingListContainer'); container.innerHTML='';
       const filter = $('#searchInput').value.toLowerCase();
@@ -307,7 +433,6 @@
           </div>
           <div class="hidden border-t border-slate-100 bg-slate-50 p-3 space-y-2">
             ${items.map(item => {
-              // 紅綠燈邏輯
               const statusStr = item.uploadStatus || "";
               const isComplete = statusStr.includes("使用前") && statusStr.includes("使用中") && statusStr.includes("歸還後");
               let photoBadge = '';
@@ -339,9 +464,15 @@
         container.appendChild(card);
       });
     }
+    
+    // 搜尋與匯出功能
     $('#searchInput').addEventListener('input', renderList);
     $('#exportCsvBtn').onclick = () => { if(!dbData.length) return; const csv='\ufeff狀態,日期,開始,結束,場地,單位\n'+dbData.map(r=>`${r.status},${r.date},${r.startTime},${r.endTime},"${r.facility}","${r.unit}"`).join('\n'); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='Booking.csv'; a.click(); };
+    
+    // Toast 通知
     function showToast(t,m,type){ const o=$('#toast'); $('#toastTitle').textContent=t; $('#toastMsg').textContent=m; $('#toastIcon').className=`text-2xl ri-${type==='success'?'checkbox-circle-fill text-emerald-400':'error-warning-fill text-rose-400'}`; o.classList.remove('translate-y-20','opacity-0'); setTimeout(()=>o.classList.add('translate-y-20','opacity-0'),3000); }
+    
+    // 頁面切換 helper
     window.switchView=(v)=>{ document.querySelectorAll('[id^="view-"]').forEach(e=>e.classList.add('hidden')); $('#view-'+v).classList.remove('hidden'); };
   </script>
 </body>
