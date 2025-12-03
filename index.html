@@ -1,3 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"/>
+  <title>場地借用管理系統</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+    body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    .input-field { width: 100%; border-radius: 0.5rem; border: 1px solid #e2e8f0; padding: 0.6rem; font-size: 0.875rem; transition: all 0.2s; } 
+    .input-field:focus { border-color: #6366f1; outline: 2px solid #e0e7ff; } 
+    .disabled-input { background-color: #f3f4f6; color: #9ca3af; pointer-events: none; }
+    aside.absolute { bottom: 0; }
+    
+    /* 紅色呼吸燈動畫 (用於強調缺件按鈕) */
+    @keyframes pulse-red {
+      0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(225, 29, 72, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
+    }
+    .btn-alert { animation: pulse-red 2s infinite; }
+  </style>
+
+  <script>
+    // ⚠️ 系統整合連結 (可依需求修改)
+    const PORTAL_URL = "https://tfd-train.github.io/Training-Management-Platform/"; 
+    const OTHER_SYSTEM_URL = "https://tfd-train.github.io/Training-Flow-Management/";
+  </script>
+</head>
+<body class="bg-slate-100 text-slate-800 h-screen overflow-hidden flex selection:bg-indigo-500 selection:text-white">
+
+  <!-- Sidebar -->
+  <aside class="w-64 bg-slate-900 text-white hidden md:flex flex-col shadow-2xl z-30 transition-all duration-300">
+    <div class="p-6 border-b border-slate-800 flex items-center gap-3">
+      <div class="w-8 h-8 rounded-lg bg-indigo-500 flex items-center justify-center shadow-lg shadow-indigo-500/50">
+        <i class="ri-building-2-fill text-white"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-lg tracking-wide">場地預約</h1>
+        <p class="text-xs text-slate-400">訓練中心內部系統</p>
+      </div>
+    </div>
+    
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+      <button onclick="switchView('form'); resetForm();" class="nav-btn w-full text-left px-4 py-3 rounded-xl bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 flex items-center gap-3 hover:bg-indigo-600 hover:text-white transition">
+        <i class="ri-add-circle-line text-xl"></i> 新增申請
+      </button>
+      <button onclick="switchView('list')" class="nav-btn w-full text-left px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center justify-between transition group">
+        <div class="flex items-center gap-3"><i class="ri-file-list-3-line text-xl"></i> 預約清單</div>
+        <!-- 🔴 Sidebar Badge -->
+        <span id="pendingBadge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm group-hover:bg-white group-hover:text-rose-600">0</span>
+      </button>
+      <button id="exportCsvBtn" class="w-full text-left px-4 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition text-sm mt-4">
+        <i class="ri-file-excel-line"></i> 匯出報表
+      </button>
+    </nav>
+
+    <div class="p-4 border-t border-slate-800 space-y-2 bg-slate-900">
+        <div class="text-[10px] text-slate-500 font-bold px-4 mb-1 uppercase tracking-wider">系統切換</div>
+        <a href="javascript:void(0)" onclick="location.href=OTHER_SYSTEM_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
+            <i class="ri-flow-chart text-lg text-blue-400"></i> 訓練流路系統
+        </a>
+        <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="flex items-center gap-3 px-4 py-2 rounded-xl text-slate-500 hover:text-white transition text-xs">
+            <i class="ri-arrow-left-line"></i> 回整合首頁
+        </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 flex flex-col h-full overflow-hidden relative bg-slate-100">
+    <header class="md:hidden bg-white p-4 shadow-sm flex justify-between items-center z-20">
+      <h1 class="font-bold text-slate-800 flex items-center gap-2">
+        <i class="ri-building-2-fill text-indigo-600"></i> 場地預約
+      </h1>
+      <div class="flex gap-4 items-center">
+        <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="text-slate-400 hover:text-indigo-600"><i class="ri-home-4-line text-xl"></i></a>
+        <button onclick="toggleMobileSidebar()" class="text-slate-600 p-2"><i class="ri-menu-line text-xl"></i></button>
+      </div>
+    </header>
+
+    <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth">
+      
+      <!-- View: Form -->
+      <div id="view-form" class="max-w-7xl mx-auto animate-fade-in grid lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            
+            <!-- 🔴 待補照片提醒區塊 -->
+            <div id="todoSection" class="hidden bg-rose-50 border border-rose-100 rounded-2xl p-5 shadow-sm relative overflow-hidden">
+                <div class="absolute right-0 top-0 w-24 h-24 bg-rose-100 rounded-full -mr-8 -mt-8 opacity-50"></div>
+                <h3 class="font-bold text-rose-700 flex items-center gap-2 text-lg relative z-10">
+                    <i class="ri-alarm-warning-fill"></i> 待補照片提醒
+                </h3>
+                <p class="text-sm text-rose-600 mb-3 relative z-10">以下預約已核准但照片未齊全，請儘速處理：</p>
+                <div id="todoList" class="space-y-2 relative z-10 max-h-48 overflow-y-auto pr-2"></div>
+            </div>
+
+            <div class="flex justify-between items-end">
+                <div>
+                  <h2 id="formTitle" class="text-2xl font-bold text-slate-800">新增預約申請</h2>
+                  <p class="text-slate-500 text-sm mt-1">請詳閱規範，送出後系統將自動寄信通知。</p>
+                </div>
+                <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1">
+                  <i class="ri-refresh-line"></i> 重新同步
+                </button>
+            </div>
+          
+            <!-- 表單內容 -->
+            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
+                <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
+                <form id="bookingForm" class="p-6 md:p-8 space-y-6">
+                    <input type="hidden" id="editId">
+
+                    <!-- 基本資料 -->
+                    <div class="space-y-4">
+                        <div class="grid md:grid-cols-2 gap-4">
+                          <input id="unit" type="text" class="input-field" placeholder="借用單位 *" required>
+                          <input id="contact" type="text" class="input-field" placeholder="聯絡人姓名 *" required>
+                          <input id="phone" type="tel" class="input-field" placeholder="聯絡電話 *" required>
+                          <input id="email" type="email" class="input-field" placeholder="Email (接收通知用) *" required>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-100">
+
+                    <div class="space-y-4">
+                        <!-- 場地 -->
+                        <select id="facility" class="input-field" required>
+                          <option value="" disabled selected>請選擇場地...</option>
+                          <optgroup label="教學區域">
+                            <option>教室701</option>
+                            <option>教室702</option>
+                            <option>教室703</option>
+                          </optgroup>
+                          <optgroup label="實體訓練場">
+                            <option>空呼氣訓練場</option>
+                            <option>燃燒櫃</option>
+                            <option>燃燒室</option>
+                            <option>大直訓練場</option>
+                            <option>AB塔</option>
+                          </optgroup>
+                          <option value="other">✏️ 其他 (自填)</option>
+                        </select>
+                        <input id="customFacility" type="text" class="input-field hidden" placeholder="請輸入場地名稱...">
+
+                        <!-- 申請模式切換：單日 / 多日二選一 -->
+                        <div class="flex flex-wrap items-center gap-3 mb-2">
+                          <span class="text-xs text-slate-500 font-bold">申請模式：</span>
+                          <label class="flex items-center gap-1 text-xs cursor-pointer">
+                            <input type="radio" name="applyMode" id="modeSingle" value="single" checked class="w-3 h-3 text-indigo-600">
+                            <span>單日申請</span>
+                          </label>
+                          <label class="flex items-center gap-1 text-xs cursor-pointer">
+                            <input type="radio" name="applyMode" id="modeMulti" value="multi" class="w-3 h-3 text-indigo-600">
+                            <span>多日 / 連續申請</span>
+                          </label>
+                        </div>
+
+                        <!-- 單日日期欄 -->
+                        <div id="singleDateRow" class="grid md:grid-cols-3 gap-4 items-start">
+                          <div class="space-y-1">
+                            <input id="date" type="date" class="input-field" required>
+                            <p class="text-[10px] text-slate-400 mt-1">單日申請時，請填寫此欄位。</p>
+                          </div>
+                          <!-- 時間欄位：單日、多日共用 -->
+                          <div id="timeRow" class="col-span-2 space-y-2">
+                            <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200">
+                              <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                              <label for="isAllDay" class="text-sm text-slate-700 font-medium cursor-pointer select-none">全天借用 (08:00 - 17:00)</label>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                              <input id="startTime" type="time" class="input-field" required>
+                              <input id="endTime" type="time" class="input-field" required>
+                            </div>
+                          </div>
+                        </div>
+
+                        <!-- 多日 / 連續申請區塊（預設隱藏） -->
+                        <div id="multiDateWrap" class="mt-3 hidden">
+                          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
+                            <div class="grid grid-cols-2 gap-3">
+                              <div>
+                                <label class="text-[10px] text-slate-400 font-bold">起始日期</label>
+                                <input id="dateStart" type="date" class="input-field text-sm p-2">
+                              </div>
+                              <div>
+                                <label class="text-[10px] text-slate-400 font-bold">結束日期</label>
+                                <input id="dateEnd" type="date" class="input-field text-sm p-2">
+                              </div>
+                            </div>
+                            <div class="mt-2">
+                              <select id="dateMode" class="input-field text-sm py-1">
+                                <option value="all">連續日期 (含六日)</option>
+                                <option value="weekday">排除週末</option>
+                                <option value="weekend">僅限週末</option>
+                              </select>
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-2">
+                              多日申請時，將依區間自動產生多筆申請；單日模式下，本區塊將不生效。
+                            </p>
+                          </div>
+                        </div>
+
+                        <textarea id="purpose" rows="3" class="input-field" placeholder="用途說明..."></textarea>
+                    </div>
+
+                    <div class="bg-rose-50 border border-rose-200 rounded-xl p-4">
+                        <p id="safetyText" class="text-xs text-rose-600 mb-3 leading-relaxed">請先選擇場地...</p>
+                        <label class="flex items-start gap-2 cursor-pointer">
+                          <input type="checkbox" id="safetyCheck" class="mt-1 w-4 h-4 text-rose-600 rounded" required>
+                          <span class="text-xs text-rose-800 font-medium">我已詳閱並同意上述規範。</span>
+                        </label>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button type="button" id="cancelEditBtn" class="hidden w-1/3 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200">取消</button>
+                        <button type="submit" id="submitBtn" class="w-full rounded-xl bg-slate-900 text-white py-3.5 text-sm font-bold shadow-lg hover:bg-indigo-600 transition-all">
+                          <i class="ri-send-plane-fill"></i> 提交申請
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="space-y-6">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+            <h3 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider">
+              <i class="ri-calendar-2-line text-indigo-500"></i> 未來 7 天概況
+            </h3>
+            <div id="weeklyNotice" class="space-y-3 max-h-[200px] overflow-y-auto pr-1"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-1 overflow-hidden">
+            <iframe id="calendarFrame" src="" style="border:0" width="100%" height="400" frameborder="0" scrolling="no"></iframe>
+          </div>
+        </div>
+      </div>
+
+      <!-- View: List -->
+      <div id="view-list" class="max-w-6xl mx-auto hidden animate-fade-in">
+         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[85vh]">
+            <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
+               <h2 class="font-bold text-lg text-slate-700 flex items-center gap-2">
+                 <i class="ri-file-list-3-line text-indigo-500"></i> 預約總表
+               </h2>
+               <input id="searchInput" type="text" placeholder="搜尋..." class="input-field py-1.5 text-sm w-40">
+            </div>
+            <div class="flex-1 overflow-auto p-4" id="bookingListContainer"></div>
+         </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modals & Toast -->
+  <div id="cancelModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+      <h3 class="text-lg font-bold text-slate-800 mb-2">身分驗證</h3>
+      <form id="cancelForm" class="space-y-3">
+        <input type="hidden" id="cancelTargetId">
+        <input type="hidden" id="cancelType">
+        <input type="email" id="verifyEmail" class="input-field" placeholder="Email" required>
+        <textarea id="cancelReason" class="input-field" rows="2" placeholder="取消原因" required></textarea>
+        <div class="flex gap-2 pt-2">
+          <button type="button" onclick="$('#cancelModal').classList.replace('flex','hidden')" class="flex-1 py-2 bg-gray-100 rounded-xl">關閉</button>
+          <button type="submit" id="confirmCancelBtn" class="flex-1 py-2 bg-rose-600 text-white rounded-xl">送出</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="photoModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
+      <h3 class="text-lg font-bold text-slate-800 mb-2">上傳紀錄照片</h3>
+      <p class="text-xs text-slate-500 mb-4">將自動壓縮至 800px 寬。</p>
+      <form id="photoForm" class="space-y-4">
+        <input type="hidden" id="photoTargetId">
+        <div class="grid grid-cols-3 gap-2">
+          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+            <input type="radio" name="photoType" value="使用前" class="hidden" checked>
+            <div class="text-xs font-bold">使用前</div>
+          </label>
+          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+            <input type="radio" name="photoType" value="使用中" class="hidden">
+            <div class="text-xs font-bold">使用中</div>
+          </label>
+          <label class="cursor-pointer border-2 border-slate-100 rounded-lg p-2 text-center hover:border-indigo-500 has-[:checked]:border-indigo-500 has-[:checked]:bg-indigo-50">
+            <input type="radio" name="photoType" value="歸還後" class="hidden">
+            <div class="text-xs font-bold">歸還後</div>
+          </label>
+        </div>
+        <input type="file" id="photoFile" accept="image/*" class="block w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100" required>
+        <div id="photoPreview" class="w-full h-32 bg-slate-100 rounded-lg hidden bg-cover bg-center"></div>
+        <div id="progressText" class="text-xs text-center text-indigo-600 hidden"></div>
+        <button type="submit" id="uploadBtn" class="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700">開始上傳</button>
+      </form>
+      <button onclick="$('#photoModal').classList.replace('flex','hidden')" class="mt-2 w-full py-2 text-slate-400 text-sm hover:text-slate-600">取消</button>
+    </div>
+  </div>
+
+  <div id="toast" class="fixed bottom-8 right-8 px-6 py-4 bg-slate-800 text-white rounded-xl shadow-2xl flex items-center gap-4 transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+    <div id="toastIcon"></div>
+    <div>
+      <h4 id="toastTitle" class="font-bold text-sm"></h4>
+      <p id="toastMsg" class="text-xs text-slate-300"></p>
+    </div>
+  </div>
+
+<!-- ============================================== -->
+<!-- ⚠️ 修正後的腳本放在這裡，確保在所有 HTML 元素之後執行 -->
+<!-- ============================================== -->
 <script>
   // ==================== 全域設定 ====================
   const $ = (s) => document.querySelector(s);
@@ -730,3 +1043,5 @@
     if (target) target.classList.remove('hidden');
   };
 </script>
+</body>
+</html>
