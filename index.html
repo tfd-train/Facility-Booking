@@ -120,6 +120,8 @@
                 <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
                 <form id="bookingForm" class="p-6 md:p-8 space-y-6">
                     <input type="hidden" id="editId">
+
+                    <!-- 基本資料 -->
                     <div class="space-y-4">
                         <div class="grid md:grid-cols-2 gap-4">
                           <input id="unit" type="text" class="input-field" placeholder="借用單位 *" required>
@@ -132,6 +134,7 @@
                     <hr class="border-slate-100">
 
                     <div class="space-y-4">
+                        <!-- 場地 -->
                         <select id="facility" class="input-field" required>
                           <option value="" disabled selected>請選擇場地...</option>
                           <optgroup label="教學區域">
@@ -163,13 +166,14 @@
                           </label>
                         </div>
 
-                        <!-- 單日申請區塊 -->
-                        <div id="singleDateWrap" class="grid md:grid-cols-3 gap-4 items-start">
+                        <!-- 單日日期欄 -->
+                        <div id="singleDateRow" class="grid md:grid-cols-3 gap-4 items-start">
                           <div class="space-y-1">
                             <input id="date" type="date" class="input-field" required>
                             <p class="text-[10px] text-slate-400 mt-1">單日申請時，請填寫此欄位。</p>
                           </div>
-                          <div class="col-span-2 space-y-2">
+                          <!-- 時間欄位：單日、多日共用 -->
+                          <div id="timeRow" class="col-span-2 space-y-2">
                             <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200">
                               <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
                               <label for="isAllDay" class="text-sm text-slate-700 font-medium cursor-pointer select-none">全天借用 (08:00 - 17:00)</label>
@@ -361,20 +365,20 @@
     document.querySelectorAll('input[name="applyMode"]').forEach(r => {
       r.addEventListener('change', () => {
         const mode = document.querySelector('input[name="applyMode"]:checked').value;
-        const singleWrap = $('#singleDateWrap');
+        const singleRow = $('#singleDateRow');
         const multiWrap  = $('#multiDateWrap');
         const singleDate = $('#date');
         const dStart = $('#dateStart');
         const dEnd   = $('#dateEnd');
 
         if (mode === 'single') {
-          singleWrap.classList.remove('hidden');
+          singleRow.classList.remove('hidden');
           multiWrap.classList.add('hidden');
           singleDate.required = true;
           dStart.required = false;
           dEnd.required   = false;
         } else {
-          singleWrap.classList.add('hidden');
+          singleRow.classList.add('hidden');
           multiWrap.classList.remove('hidden');
           singleDate.required = false;
           dStart.required = true;
@@ -478,6 +482,7 @@
     $('#bookingForm').addEventListener('submit', async e => {
       e.preventDefault();
 
+      // 時間防呆
       if($('#endTime').value <= $('#startTime').value) {
         alert('時間錯誤：結束時間需晚於開始時間');
         return;
@@ -678,7 +683,7 @@
       // 編輯狀態固定用單日模式
       $('#modeSingle').checked = true;
       $('#modeMulti').checked = false;
-      $('#singleDateWrap').classList.remove('hidden');
+      $('#singleDateRow').classList.remove('hidden');
       $('#multiDateWrap').classList.add('hidden');
       $('#date').required = true;
       $('#dateStart').required = false;
@@ -713,7 +718,7 @@
       // 重設模式為單日
       $('#modeSingle').checked = true;
       $('#modeMulti').checked = false;
-      $('#singleDateWrap').classList.remove('hidden');
+      $('#singleDateRow').classList.remove('hidden');
       $('#multiDateWrap').classList.add('hidden');
       $('#date').required = true;
       $('#dateStart').required = false;
