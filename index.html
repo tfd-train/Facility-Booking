@@ -156,7 +156,7 @@
                           </label>
                           <label class="flex items-center gap-1 text-xs cursor-pointer">
                             <input type="radio" name="applyMode" id="modeMulti" value="multi" class="w-3 h-3 text-indigo-600">
-                            <span>多日 / 連續申請</span>
+                            <span>多日 / 不連續申請</span>
                           </label>
                         </div>
 
@@ -166,14 +166,14 @@
                           <input id="date" type="date" class="input-field" required>
                         </div>
 
-                        <!-- 2. 多日/指定日期申請區塊 (改成「加入清單」模式) -->
+                        <!-- 2. 多日/不連續日期申請區塊 (購物車模式) -->
                         <div id="multiDateWrap" class="mt-3 hidden">
                           <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
                             
                             <!-- 選日期工具 -->
                             <div class="flex gap-2 items-end">
                               <div class="flex-1">
-                                <label class="text-[10px] text-slate-400 font-bold">選擇日期 (可跳日)</label>
+                                <label class="text-[10px] text-slate-400 font-bold">選擇日期 (可挑選不連續日期)</label>
                                 <input id="datePicker" type="date" class="input-field text-sm p-2">
                               </div>
                               <button type="button" onclick="addDateToList()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-indigo-700 active:scale-95 transition">
@@ -190,12 +190,12 @@
                             </div>
                             
                             <p class="text-[10px] text-slate-400">
-                              請逐一加入欲借用的日期，支援不連續日期。
+                              請逐一加入欲借用的日期，支援不連續日期（例如 1/1, 1/3, 1/5）。
                             </p>
                           </div>
                         </div>
 
-                        <!-- 3. 時間欄位 (獨立出來，永遠顯示) -->
+                        <!-- 3. 時間欄位 (獨立出來，永遠顯示，解決日曆空白問題) -->
                         <div id="timeRow" class="space-y-2 mt-4 border-t border-slate-100 pt-4">
                           <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200 w-fit">
                             <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
@@ -322,7 +322,7 @@
   let dbData = [];
 
   // ⚠️ ★ 填入你的 Apps Script Web App URL ★
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzCBtn4fcFB_QxQhObpNIzmbRyfR7qSWqkxKAfrSuLeBm3n2mP4ywPEaYd76c2-m58Z3Q/exec';
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxX1rxyi_y5A7IQdopT5AqlN0gyaeJyBBvYR5TyYMyUr9wytlwivB86UxpL0kQMkEqZTQ/exec';
   
   // ★ 填入你的 Google 日曆 embed URL
   const CALENDAR_EMBED_URL = 'https://calendar.google.com/calendar/embed?src=5d3470b8ffb11daa8db6817414d5eedacc728c0cde687d295a3b29e5e82214d1%40group.calendar.google.com&ctz=Asia%2FTaipei';
@@ -905,7 +905,6 @@
 
   // ==================== 列表渲染 ====================
   function renderList() {
-    // ... (維持原樣) ...
     const container = $('#bookingListContainer');
     if (!container) return;
     container.innerHTML = '';
