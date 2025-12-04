@@ -160,36 +160,37 @@
                           </label>
                         </div>
 
-                        <!-- ⚠️ 關鍵修改：日期與時間拆開，時間永遠顯示 -->
-                        
                         <!-- 1. 單日日期 (只在單日模式顯示) -->
                         <div id="singleDateContainer" class="space-y-1">
                           <label class="text-xs text-slate-500 font-bold">借用日期</label>
                           <input id="date" type="date" class="input-field" required>
                         </div>
 
-                        <!-- 2. 多日/連續申請區塊 (預設隱藏) -->
+                        <!-- 2. 多日/指定日期申請區塊 (改成「加入清單」模式) -->
                         <div id="multiDateWrap" class="mt-3 hidden">
-                          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
-                            <div class="grid grid-cols-2 gap-3">
-                              <div>
-                                <label class="text-[10px] text-slate-400 font-bold">起始日期</label>
-                                <input id="dateStart" type="date" class="input-field text-sm p-2">
+                          <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
+                            
+                            <!-- 選日期工具 -->
+                            <div class="flex gap-2 items-end">
+                              <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold">選擇日期 (可跳日)</label>
+                                <input id="datePicker" type="date" class="input-field text-sm p-2">
                               </div>
-                              <div>
-                                <label class="text-[10px] text-slate-400 font-bold">結束日期</label>
-                                <input id="dateEnd" type="date" class="input-field text-sm p-2">
+                              <button type="button" onclick="addDateToList()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-indigo-700 active:scale-95 transition">
+                                <i class="ri-add-line"></i> 加入
+                              </button>
+                            </div>
+
+                            <!-- 已選日期清單 (標籤顯示區) -->
+                            <div class="min-h-[60px] bg-white border border-slate-200 rounded-lg p-2">
+                              <p id="emptyDateMsg" class="text-xs text-slate-400 text-center py-4">尚未加入任何日期</p>
+                              <div id="dateTagContainer" class="flex flex-wrap gap-2">
+                                <!-- 這裡會動態產生日期標籤 -->
                               </div>
                             </div>
-                            <div class="mt-2">
-                              <select id="dateMode" class="input-field text-sm py-1">
-                                <option value="all">連續日期 (含六日)</option>
-                                <option value="weekday">排除週末</option>
-                                <option value="weekend">僅限週末</option>
-                              </select>
-                            </div>
-                            <p class="text-[10px] text-slate-400 mt-2">
-                              多日申請時，將依區間自動產生多筆申請。
+                            
+                            <p class="text-[10px] text-slate-400">
+                              請逐一加入欲借用的日期，支援不連續日期。
                             </p>
                           </div>
                         </div>
@@ -320,8 +321,9 @@
   const $ = (s) => document.querySelector(s);
   let dbData = [];
 
-  // ★ 填入你的 Apps Script Web App URL
+  // ⚠️ ★ 填入你的 Apps Script Web App URL ★
   const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzCBtn4fcFB_QxQhObpNIzmbRyfR7qSWqkxKAfrSuLeBm3n2mP4ywPEaYd76c2-m58Z3Q/exec';
+  
   // ★ 填入你的 Google 日曆 embed URL
   const CALENDAR_EMBED_URL = 'https://calendar.google.com/calendar/embed?src=5d3470b8ffb11daa8db6817414d5eedacc728c0cde687d295a3b29e5e82214d1%40group.calendar.google.com&ctz=Asia%2FTaipei';
 
@@ -393,40 +395,27 @@
     });
   }
 
-  // ==================== 申請模式切換 (JS 邏輯修正) ====================
+  // ==================== 申請模式切換 (單日/多日清單) ====================
   function updateApplyMode() {
     const modeInput = document.querySelector('input[name="applyMode"]:checked');
     const mode = modeInput ? modeInput.value : 'single';
     
-    // 取得新結構的容器
     const singleContainer = $('#singleDateContainer');
     const multiWrap = $('#multiDateWrap');
-    
-    // 欄位引用
     const singleDate = $('#date');
-    const dStart = $('#dateStart');
-    const dEnd = $('#dateEnd');
 
     if (!singleContainer || !multiWrap) return;
 
     if (mode === 'single') {
-      // 單日模式
       singleContainer.classList.remove('hidden');
       multiWrap.classList.add('hidden');
-      
       if (singleDate) singleDate.required = true;
-      if (dStart) dStart.required = false;
-      if (dEnd) dEnd.required = false;
     } else {
-      // 多日模式
       singleContainer.classList.add('hidden');
       multiWrap.classList.remove('hidden');
-      
       if (singleDate) singleDate.required = false;
-      if (dStart) dStart.required = true;
-      if (dEnd) dEnd.required = true;
     }
-    // ⚠️ 時間欄位 (#timeRow) 永遠顯示，不再隱藏
+    // 時間欄位永遠顯示
   }
 
   const applyModeRadios = document.querySelectorAll('input[name="applyMode"]');
@@ -434,7 +423,53 @@
     applyModeRadios.forEach(r => {
       r.addEventListener('change', updateApplyMode);
     });
-    updateApplyMode(); // 初始化執行一次
+    updateApplyMode(); // 初始化
+  }
+
+  // ==================== 多日挑選邏輯 (購物車) ====================
+  let selectedDateList = [];
+
+  function addDateToList() {
+    const picker = $('#datePicker');
+    const val = picker.value;
+    
+    if (!val) return alert('請先選擇日期');
+    if (selectedDateList.includes(val)) return alert('此日期已在清單中');
+
+    selectedDateList.push(val);
+    selectedDateList.sort();
+    
+    renderDateTags();
+    picker.value = '';
+  }
+
+  function removeDateFromList(dateStr) {
+    selectedDateList = selectedDateList.filter(d => d !== dateStr);
+    renderDateTags();
+  }
+
+  function renderDateTags() {
+    const container = $('#dateTagContainer');
+    const msg = $('#emptyDateMsg');
+    
+    container.innerHTML = '';
+    
+    if (selectedDateList.length === 0) {
+      msg.classList.remove('hidden');
+    } else {
+      msg.classList.add('hidden');
+      selectedDateList.forEach(d => {
+        const tag = document.createElement('div');
+        tag.className = 'bg-indigo-50 text-indigo-700 text-xs font-bold px-2 py-1 rounded border border-indigo-200 flex items-center gap-2';
+        tag.innerHTML = `
+          <span>${d}</span>
+          <button type="button" onclick="removeDateFromList('${d}')" class="text-indigo-400 hover:text-red-500">
+            <i class="ri-close-circle-fill"></i>
+          </button>
+        `;
+        container.appendChild(tag);
+      });
+    }
   }
 
   // ==================== 從 GAS 抓資料 ====================
@@ -454,10 +489,9 @@
 
   const syncBtn = $('#syncBtn');
   if (syncBtn) syncBtn.onclick = fetchData;
-  // 載入頁面時自動同步一次
   fetchData();
 
-  // ==================== Helper：判斷缺哪些照片 ====================
+  // ==================== Helper ====================
   function getMissingParts(statusStr) {
     const missing = [];
     if (!statusStr.includes('使用前')) missing.push('前');
@@ -466,7 +500,7 @@
     return missing;
   }
 
-  // ==================== 待補照片提醒區塊 ====================
+  // ==================== 待補照片 ====================
   function renderTodo() {
     const todoContainer = $('#todoList');
     const todoSection = $('#todoSection');
@@ -474,7 +508,6 @@
     if (!todoContainer || !todoSection || !badge) return;
 
     const today = new Date().toISOString().slice(0, 10);
-
     const pendingItems = dbData.filter(x => {
       if (!x.status.includes('已核准')) return false;
       if (x.date > today) return false;
@@ -509,7 +542,7 @@
     }).join('');
   }
 
-  // ==================== 近期 7 天預約資訊 ====================
+  // ==================== 近期概況 ====================
   function updateWeeklyNotice() {
     const con = $('#weeklyNotice');
     if (!con) return;
@@ -536,7 +569,7 @@
     if (!has) con.innerHTML = '<div class="text-sm text-slate-400 py-4 text-center">未來 7 天無核准預約</div>';
   }
 
-  // ==================== 表單送出（單日 / 多日 + 批次建立） ====================
+  // ==================== 表單送出 ====================
   const bookingForm = $('#bookingForm');
   if (bookingForm) {
     bookingForm.addEventListener('submit', async e => {
@@ -545,7 +578,6 @@
       const startTimeEl = $('#startTime');
       const endTimeEl = $('#endTime');
 
-      // 時間防呆
       if (startTimeEl && endTimeEl && startTimeEl.value && endTimeEl.value) {
         if (endTimeEl.value <= startTimeEl.value) {
           alert('時間錯誤：結束時間需晚於開始時間');
@@ -563,9 +595,8 @@
 
       const btn = $('#submitBtn');
       if (!btn) return;
-
-      // 避免重複點擊
       if (btn.disabled) return;
+      
       const originalBtnText = btn.innerHTML;
       btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 處理中...';
       btn.disabled = true;
@@ -594,7 +625,7 @@
           resetForm();
           setTimeout(fetchData, 1500);
         } else {
-          // 申請模式：single = 單日、multi = 多日
+          // 申請模式判斷
           const modeInput = document.querySelector('input[name="applyMode"]:checked');
           const applyMode = modeInput ? modeInput.value : 'single';
           let dates = [];
@@ -605,33 +636,15 @@
             if (!singleDate) throw new Error('請填寫單日日期');
             dates = [singleDate];
           } else {
-            const dStartEl = $('#dateStart');
-            const dEndEl   = $('#dateEnd');
-            const modeSel  = $('#dateMode');
-
-            const dStart = dStartEl ? dStartEl.value : '';
-            const dEnd   = dEndEl ? dEndEl.value : '';
-            const mode   = modeSel ? modeSel.value : 'all';
-
-            if (!dStart || !dEnd) throw new Error('請填寫多日起訖日期');
-
-            const start = new Date(dStart);
-            const end   = new Date(dEnd);
-            if (end < start) throw new Error('多日區間錯誤：結束日期需晚於起始日期');
-
-            let c = new Date(start);
-            while (c <= end) {
-              const day = c.getDay();
-              let add = true;
-              if (mode === 'weekday' && (day === 0 || day === 6)) add = false;
-              if (mode === 'weekend' && (day !== 0 && day !== 6)) add = false;
-              if (add) dates.push(c.toISOString().slice(0, 10));
-              c.setDate(c.getDate() + 1);
+            // 多日模式：直接使用 selectedDateList
+            if (selectedDateList.length === 0) {
+              alert('請至少加入一個日期！');
+              throw new Error('未選擇日期');
             }
-            if (!dates.length) throw new Error('多日區間內無有效日期（可能全部被排除為週末或平日）');
+            dates = [...selectedDateList];
           }
 
-          // 發送請求：批次建立
+          // 發送請求
           await fetch(GAS_ENDPOINT, {
             method: 'POST',
             headers: { "Content-Type": "text/plain" },
@@ -643,8 +656,10 @@
         }
       } catch (err) {
         console.error(err);
-        alert('提交失敗: ' + (err.message || '未知錯誤'));
-        showToast('提交失敗', '請稍後再試或聯絡管理者', 'error');
+        if (err.message !== '未選擇日期') {
+            alert('提交失敗: ' + (err.message || '未知錯誤'));
+            showToast('提交失敗', '請稍後再試', 'error');
+        }
       } finally {
         btn.innerHTML = originalBtnText;
         btn.classList.remove('bg-emerald-600');
@@ -767,7 +782,7 @@
     });
   }
 
-  // ==================== 編輯紀錄 ====================
+  // ==================== 編輯 ====================
   window.editRecord = (id) => {
     const r = dbData.find(x => x.id === id);
     if (!r) return;
@@ -782,11 +797,10 @@
     if ($('#startTime')) $('#startTime').value = r.startTime;
     if ($('#endTime')) $('#endTime').value = r.endTime;
 
-    // 編輯狀態固定用單日模式
+    // 編輯強制用單日
     const modeSingle = $('#modeSingle');
     const modeMulti  = $('#modeMulti');
     if (modeSingle) modeSingle.checked = true;
-    if (modeMulti) modeMulti.checked = false;
     updateApplyMode();
 
     const formTitle = $('#formTitle');
@@ -810,9 +824,12 @@
     if (bookingForm) bookingForm.reset();
     if ($('#editId')) $('#editId').value = "";
     if ($('#date')) $('#date').value = new Date().toISOString().slice(0, 10);
-    if ($('#facility')) $('#facility').value = "";
-    const customFacility = $('#customFacility');
-    if (customFacility) customFacility.classList.add('hidden');
+    
+    // 清空多日清單
+    selectedDateList = [];
+    renderDateTags();
+    $('#datePicker').value = '';
+
     const formTitle = $('#formTitle');
     const submitBtn = $('#submitBtn');
     const cancelEditBtn = $('#cancelEditBtn');
@@ -824,19 +841,13 @@
     }
     if (cancelEditBtn) cancelEditBtn.classList.add('hidden');
     if ($('#isAllDay')) $('#isAllDay').checked = false;
-    if ($('#startTime')) $('#startTime').classList.remove('disabled-input');
-    if ($('#endTime')) $('#endTime').classList.remove('disabled-input');
-    if ($('#safetyText')) $('#safetyText').innerText = SAFETY_LOW;
-
-    // 重設模式為單日
+    
     const modeSingle = $('#modeSingle');
-    const modeMulti  = $('#modeMulti');
     if (modeSingle) modeSingle.checked = true;
-    if (modeMulti) modeMulti.checked = false;
     updateApplyMode();
   }
 
-  // ==================== 取消申請（單一 / 整批） ====================
+  // ==================== 取消 ====================
   window.openCancelModal = (id, isBatch) => {
     const targetId = $('#cancelTargetId');
     const typeEl = $('#cancelType');
@@ -894,6 +905,7 @@
 
   // ==================== 列表渲染 ====================
   function renderList() {
+    // ... (維持原樣) ...
     const container = $('#bookingListContainer');
     if (!container) return;
     container.innerHTML = '';
