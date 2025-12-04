@@ -160,26 +160,15 @@
                           </label>
                         </div>
 
-                        <!-- 單日日期欄 -->
-                        <div id="singleDateRow" class="grid md:grid-cols-3 gap-4 items-start">
-                          <div class="space-y-1">
-                            <input id="date" type="date" class="input-field" required>
-                            <p class="text-[10px] text-slate-400 mt-1">單日申請時，請填寫此欄位。</p>
-                          </div>
-                          <!-- 時間欄位：單日、多日共用 -->
-                          <div id="timeRow" class="col-span-2 space-y-2">
-                            <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200">
-                              <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
-                              <label for="isAllDay" class="text-sm text-slate-700 font-medium cursor-pointer select-none">全天借用 (08:00 - 17:00)</label>
-                            </div>
-                            <div class="grid grid-cols-2 gap-4">
-                              <input id="startTime" type="time" class="input-field" required>
-                              <input id="endTime" type="time" class="input-field" required>
-                            </div>
-                          </div>
+                        <!-- ⚠️ 關鍵修改：日期與時間拆開，時間永遠顯示 -->
+                        
+                        <!-- 1. 單日日期 (只在單日模式顯示) -->
+                        <div id="singleDateContainer" class="space-y-1">
+                          <label class="text-xs text-slate-500 font-bold">借用日期</label>
+                          <input id="date" type="date" class="input-field" required>
                         </div>
 
-                        <!-- 多日 / 連續申請區塊（預設隱藏） -->
+                        <!-- 2. 多日/連續申請區塊 (預設隱藏) -->
                         <div id="multiDateWrap" class="mt-3 hidden">
                           <div class="bg-slate-50 rounded-xl border border-slate-200 p-4">
                             <div class="grid grid-cols-2 gap-3">
@@ -200,8 +189,26 @@
                               </select>
                             </div>
                             <p class="text-[10px] text-slate-400 mt-2">
-                              多日申請時，將依區間自動產生多筆申請；單日模式下，本區塊將不生效。
+                              多日申請時，將依區間自動產生多筆申請。
                             </p>
+                          </div>
+                        </div>
+
+                        <!-- 3. 時間欄位 (獨立出來，永遠顯示) -->
+                        <div id="timeRow" class="space-y-2 mt-4 border-t border-slate-100 pt-4">
+                          <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200 w-fit">
+                            <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
+                            <label for="isAllDay" class="text-sm text-slate-700 font-medium cursor-pointer select-none">全天借用 (08:00 - 17:00)</label>
+                          </div>
+                          <div class="grid grid-cols-2 gap-4">
+                            <div>
+                              <label class="text-xs text-slate-500 font-bold">開始時間</label>
+                              <input id="startTime" type="time" class="input-field" required>
+                            </div>
+                            <div>
+                              <label class="text-xs text-slate-500 font-bold">結束時間</label>
+                              <input id="endTime" type="time" class="input-field" required>
+                            </div>
                           </div>
                         </div>
 
@@ -308,9 +315,6 @@
     </div>
   </div>
 
-<!-- ============================================== -->
-<!-- ⚠️ 修正後的腳本放在這裡，確保在所有 HTML 元素之後執行 -->
-<!-- ============================================== -->
 <script>
   // ==================== 全域設定 ====================
   const $ = (s) => document.querySelector(s);
@@ -322,7 +326,6 @@
   const CALENDAR_EMBED_URL = 'https://calendar.google.com/calendar/embed?src=5d3470b8ffb11daa8db6817414d5eedacc728c0cde687d295a3b29e5e82214d1%40group.calendar.google.com&ctz=Asia%2FTaipei';
 
   // ==================== UUID 產生器 ====================
-  // 解決 crypto.randomUUID 在非 HTTPS 環境報錯的問題
   function generateUUID() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
       try { return crypto.randomUUID(); } catch(e) {}
@@ -390,31 +393,40 @@
     });
   }
 
-  // ==================== 申請模式：單日 / 多日 ====================
+  // ==================== 申請模式切換 (JS 邏輯修正) ====================
   function updateApplyMode() {
     const modeInput = document.querySelector('input[name="applyMode"]:checked');
     const mode = modeInput ? modeInput.value : 'single';
-    const singleRow = $('#singleDateRow');
-    const multiWrap  = $('#multiDateWrap');
+    
+    // 取得新結構的容器
+    const singleContainer = $('#singleDateContainer');
+    const multiWrap = $('#multiDateWrap');
+    
+    // 欄位引用
     const singleDate = $('#date');
     const dStart = $('#dateStart');
-    const dEnd   = $('#dateEnd');
+    const dEnd = $('#dateEnd');
 
-    if (!singleRow || !multiWrap) return;
+    if (!singleContainer || !multiWrap) return;
 
     if (mode === 'single') {
-      singleRow.classList.remove('hidden');
+      // 單日模式
+      singleContainer.classList.remove('hidden');
       multiWrap.classList.add('hidden');
+      
       if (singleDate) singleDate.required = true;
       if (dStart) dStart.required = false;
-      if (dEnd)   dEnd.required   = false;
+      if (dEnd) dEnd.required = false;
     } else {
-      singleRow.classList.add('hidden');
+      // 多日模式
+      singleContainer.classList.add('hidden');
       multiWrap.classList.remove('hidden');
+      
       if (singleDate) singleDate.required = false;
       if (dStart) dStart.required = true;
-      if (dEnd)   dEnd.required   = true;
+      if (dEnd) dEnd.required = true;
     }
+    // ⚠️ 時間欄位 (#timeRow) 永遠顯示，不再隱藏
   }
 
   const applyModeRadios = document.querySelectorAll('input[name="applyMode"]');
@@ -422,7 +434,7 @@
     applyModeRadios.forEach(r => {
       r.addEventListener('change', updateApplyMode);
     });
-    updateApplyMode();
+    updateApplyMode(); // 初始化執行一次
   }
 
   // ==================== 從 GAS 抓資料 ====================
