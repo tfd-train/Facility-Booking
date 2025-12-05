@@ -17,7 +17,7 @@
     .disabled-input { background-color: #f3f4f6; color: #9ca3af; pointer-events: none; }
     aside.absolute { bottom: 0; }
     
-    /* 紅色呼吸燈動畫 */
+    /* 紅色呼吸燈動畫 (用於強調缺件按鈕) */
     @keyframes pulse-red {
       0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.4); }
       70% { box-shadow: 0 0 0 6px rgba(225, 29, 72, 0); }
@@ -25,7 +25,7 @@
     }
     .btn-alert { animation: pulse-red 2s infinite; }
 
-    /* === 日曆 Modal 專用 CSS (移植自參考代碼) === */
+    /* === 日曆 Modal 專用 CSS === */
     .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin: 15px 0; }
     .day-btn { padding: 8px; border: 1px solid #e2e8f0; background: white; cursor: pointer; text-align: center; border-radius: 6px; font-size: 14px; user-select: none; }
     .day-btn:hover { background-color: #f1f5f9; }
@@ -37,9 +37,10 @@
   </style>
 
   <script>
-    // ⚠️ 系統整合連結
+    // ⚠️ 系統切換連結區
+    const TRAINING_FLOW_URL = "https://tfd-train.github.io/Training-Flow-Management/";
     const PORTAL_URL = "https://tfd-train.github.io/Training-Management-Platform/"; 
-    const OTHER_SYSTEM_URL = "https://tfd-train.github.io/Training-Flow-Management/";
+    const EV_SYSTEM_URL = "https://tfd-train.github.io/Electric-Vehicle/";
   </script>
 </head>
 <body class="bg-slate-100 text-slate-800 h-screen overflow-hidden flex selection:bg-indigo-500 selection:text-white">
@@ -62,6 +63,7 @@
       </button>
       <button onclick="switchView('list')" class="nav-btn w-full text-left px-4 py-3 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center justify-between transition group">
         <div class="flex items-center gap-3"><i class="ri-file-list-3-line text-xl"></i> 預約清單</div>
+        <!-- 🔴 Sidebar Badge -->
         <span id="pendingBadge" class="hidden bg-rose-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm group-hover:bg-white group-hover:text-rose-600">0</span>
       </button>
       <button id="exportCsvBtn" class="w-full text-left px-4 py-2.5 rounded-xl text-slate-400 hover:bg-slate-800 hover:text-white flex items-center gap-3 transition text-sm mt-4">
@@ -71,9 +73,18 @@
 
     <div class="p-4 border-t border-slate-800 space-y-2 bg-slate-900">
         <div class="text-[10px] text-slate-500 font-bold px-4 mb-1 uppercase tracking-wider">系統切換</div>
-        <a href="javascript:void(0)" onclick="location.href=OTHER_SYSTEM_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
+        
+        <!-- 1. 訓練流路 -->
+        <a href="javascript:void(0)" onclick="location.href=TRAINING_FLOW_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
             <i class="ri-flow-chart text-lg text-blue-400"></i> 訓練流路系統
         </a>
+
+        <!-- 2. 電動車訓練統計 (新加入) -->
+        <a href="javascript:void(0)" onclick="location.href=EV_SYSTEM_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
+            <i class="ri-charging-pile-2-fill text-lg text-emerald-400"></i> 電動車訓練統計
+        </a>
+
+        <!-- 3. 回整合首頁 -->
         <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="flex items-center gap-3 px-4 py-2 rounded-xl text-slate-500 hover:text-white transition text-xs">
             <i class="ri-arrow-left-line"></i> 回整合首頁
         </a>
@@ -98,7 +109,7 @@
       <div id="view-form" class="max-w-7xl mx-auto animate-fade-in grid lg:grid-cols-3 gap-6">
         <div class="lg:col-span-2 space-y-6">
             
-            <!-- 🔴 待補照片提醒 -->
+            <!-- 🔴 待補照片提醒區塊 -->
             <div id="todoSection" class="hidden bg-rose-50 border border-rose-100 rounded-2xl p-5 shadow-sm relative overflow-hidden">
                 <div class="absolute right-0 top-0 w-24 h-24 bg-rose-100 rounded-full -mr-8 -mt-8 opacity-50"></div>
                 <h3 class="font-bold text-rose-700 flex items-center gap-2 text-lg relative z-10">
@@ -175,26 +186,36 @@
                           <input id="date" type="date" class="input-field" required>
                         </div>
 
-                        <!-- 2. 多日日期 (使用日曆選擇器) -->
+                        <!-- 2. 多日/不連續日期申請區塊 (購物車模式) -->
                         <div id="multiDateWrap" class="mt-3 hidden">
                           <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
-                            <div class="flex justify-between items-center">
-                                <label class="text-[10px] text-slate-400 font-bold">選擇日期 (可多選/跳選)</label>
-                                <button type="button" onclick="openDateModal()" class="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 flex items-center gap-1 shadow font-bold">
-                                    <i class="ri-calendar-event-fill"></i> 開啟日曆選取
-                                </button>
+                            
+                            <!-- 選日期工具 -->
+                            <div class="flex gap-2 items-end">
+                              <div class="flex-1">
+                                <label class="text-[10px] text-slate-400 font-bold">選擇日期 (可挑選不連續日期)</label>
+                                <input id="datePicker" type="date" class="input-field text-sm p-2">
+                              </div>
+                              <button type="button" onclick="addDateToList()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-indigo-700 active:scale-95 transition">
+                                <i class="ri-add-line"></i> 加入
+                              </button>
+                            </div>
+
+                            <!-- 已選日期清單 (標籤顯示區) -->
+                            <div class="min-h-[60px] bg-white border border-slate-200 rounded-lg p-2">
+                              <p id="emptyDateMsg" class="text-xs text-slate-400 text-center py-4">尚未加入任何日期</p>
+                              <div id="dateTagContainer" class="flex flex-wrap gap-2">
+                                <!-- 這裡會動態產生日期標籤 -->
+                              </div>
                             </div>
                             
-                            <!-- 已選日期顯示區 -->
-                            <div class="min-h-[50px] bg-white border border-slate-200 rounded-lg p-2">
-                                <p id="emptyDateMsg" class="text-xs text-slate-400 text-center py-3">尚未選擇任何日期</p>
-                                <div id="dateTagContainer" class="flex flex-wrap gap-2"></div>
-                            </div>
-                            <p class="text-[10px] text-slate-400">請點擊上方按鈕開啟日曆進行多選。</p>
+                            <p class="text-[10px] text-slate-400">
+                              請逐一加入欲借用的日期，支援不連續日期（例如 1/1, 1/3, 1/5）。
+                            </p>
                           </div>
                         </div>
 
-                        <!-- 3. 時間欄位 (獨立顯示) -->
+                        <!-- 3. 時間欄位 (獨立出來，永遠顯示，解決日曆空白問題) -->
                         <div id="timeRow" class="space-y-2 mt-4 border-t border-slate-100 pt-4">
                           <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200 w-fit">
                             <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
@@ -261,7 +282,7 @@
     </div>
   </main>
 
-  <!-- 日曆選擇 Modal (新增移植) -->
+  <!-- 日曆 Modal -->
   <div id="dateModal" class="fixed inset-0 bg-black/50 hidden z-[2000] justify-center items-center backdrop-blur-sm">
     <div class="bg-white w-[90%] max-w-[420px] p-6 rounded-2xl shadow-2xl animate-fade-in">
         <div class="flex justify-between items-center mb-2">
@@ -340,8 +361,10 @@
   const $ = (s) => document.querySelector(s);
   let dbData = [];
 
-  // ⚠️ ★ 填入你的 GAS Web App URL ★
-  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbxX1rxyi_y5A7IQdopT5AqlN0gyaeJyBBvYR5TyYMyUr9wytlwivB86UxpL0kQMkEqZTQ/exec';
+  // ⚠️ ★ 填入你的 Apps Script Web App URL ★
+  const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzCBtn4fcFB_QxQhObpNIzmbRyfR7qSWqkxKAfrSuLeBm3n2mP4ywPEaYd76c2-m58Z3Q/exec';
+  
+  // ★ 填入你的 Google 日曆 embed URL
   const CALENDAR_EMBED_URL = 'https://calendar.google.com/calendar/embed?src=5d3470b8ffb11daa8db6817414d5eedacc728c0cde687d295a3b29e5e82214d1%40group.calendar.google.com&ctz=Asia%2FTaipei';
 
   // 內建假日表 (參考用)
