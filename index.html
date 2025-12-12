@@ -73,18 +73,12 @@
 
     <div class="p-4 border-t border-slate-800 space-y-2 bg-slate-900">
         <div class="text-[10px] text-slate-500 font-bold px-4 mb-1 uppercase tracking-wider">系統切換</div>
-        
-        <!-- 1. 訓練流路 -->
         <a href="javascript:void(0)" onclick="location.href=TRAINING_FLOW_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
             <i class="ri-flow-chart text-lg text-blue-400"></i> 訓練流路系統
         </a>
-
-        <!-- 2. 電動車訓練統計 (新加入) -->
         <a href="javascript:void(0)" onclick="location.href=EV_SYSTEM_URL" class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition text-sm">
             <i class="ri-charging-pile-2-fill text-lg text-emerald-400"></i> 電動車訓練統計
         </a>
-
-        <!-- 3. 回整合首頁 -->
         <a href="javascript:void(0)" onclick="location.href=PORTAL_URL" class="flex items-center gap-3 px-4 py-2 rounded-xl text-slate-500 hover:text-white transition text-xs">
             <i class="ri-arrow-left-line"></i> 回整合首頁
         </a>
@@ -134,8 +128,6 @@
                 <div class="h-1 bg-gradient-to-r from-indigo-500 to-purple-500"></div>
                 <form id="bookingForm" class="p-6 md:p-8 space-y-6" novalidate>
                     <input type="hidden" id="editId">
-
-                    <!-- 基本資料 -->
                     <div class="space-y-4">
                         <div class="grid md:grid-cols-2 gap-4">
                           <input id="unit" type="text" class="input-field" placeholder="借用單位 *" required>
@@ -144,11 +136,8 @@
                           <input id="email" type="email" class="input-field" placeholder="Email (接收通知用) *" required>
                         </div>
                     </div>
-
                     <hr class="border-slate-100">
-
                     <div class="space-y-4">
-                        <!-- 場地 -->
                         <select id="facility" class="input-field" required>
                           <option value="" disabled selected>請選擇場地...</option>
                           <optgroup label="教學區域">
@@ -167,7 +156,6 @@
                         </select>
                         <input id="customFacility" type="text" class="input-field hidden" placeholder="請輸入場地名稱...">
 
-                        <!-- 申請模式切換 -->
                         <div class="flex flex-wrap items-center gap-3 mb-2">
                           <span class="text-xs text-slate-500 font-bold">申請模式：</span>
                           <label class="flex items-center gap-1 text-xs cursor-pointer">
@@ -180,42 +168,29 @@
                           </label>
                         </div>
 
-                        <!-- 1. 單日日期 -->
                         <div id="singleDateContainer" class="space-y-1">
                           <label class="text-xs text-slate-500 font-bold">借用日期</label>
                           <input id="date" type="date" class="input-field" required>
                         </div>
 
-                        <!-- 2. 多日/不連續日期申請區塊 (購物車模式) -->
                         <div id="multiDateWrap" class="mt-3 hidden">
                           <div class="bg-slate-50 rounded-xl border border-slate-200 p-4 space-y-3">
-                            
-                            <!-- 選日期工具 -->
                             <div class="flex gap-2 items-end">
                               <div class="flex-1">
-                                <label class="text-[10px] text-slate-400 font-bold">選擇日期 (可挑選不連續日期)</label>
+                                <label class="text-[10px] text-slate-400 font-bold">選擇日期</label>
                                 <input id="datePicker" type="date" class="input-field text-sm p-2">
                               </div>
                               <button type="button" onclick="addDateToList()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-bold shadow hover:bg-indigo-700 active:scale-95 transition">
                                 <i class="ri-add-line"></i> 加入
                               </button>
                             </div>
-
-                            <!-- 已選日期清單 (標籤顯示區) -->
                             <div class="min-h-[60px] bg-white border border-slate-200 rounded-lg p-2">
                               <p id="emptyDateMsg" class="text-xs text-slate-400 text-center py-4">尚未加入任何日期</p>
-                              <div id="dateTagContainer" class="flex flex-wrap gap-2">
-                                <!-- 這裡會動態產生日期標籤 -->
-                              </div>
+                              <div id="dateTagContainer" class="flex flex-wrap gap-2"></div>
                             </div>
-                            
-                            <p class="text-[10px] text-slate-400">
-                              請逐一加入欲借用的日期，支援不連續日期（例如 1/1, 1/3, 1/5）。
-                            </p>
                           </div>
                         </div>
 
-                        <!-- 3. 時間欄位 (獨立出來，永遠顯示，解決日曆空白問題) -->
                         <div id="timeRow" class="space-y-2 mt-4 border-t border-slate-100 pt-4">
                           <div class="flex items-center gap-2 p-1 bg-slate-50 rounded border border-slate-200 w-fit">
                             <input type="checkbox" id="isAllDay" class="w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500 cursor-pointer">
@@ -282,7 +257,7 @@
     </div>
   </main>
 
-  <!-- 日曆 Modal -->
+  <!-- Modals -->
   <div id="dateModal" class="fixed inset-0 bg-black/50 hidden z-[2000] justify-center items-center backdrop-blur-sm">
     <div class="bg-white w-[90%] max-w-[420px] p-6 rounded-2xl shadow-2xl animate-fade-in">
         <div class="flex justify-between items-center mb-2">
@@ -300,9 +275,7 @@
             <button class="px-3 py-1.5 text-xs font-bold border rounded-lg hover:bg-slate-100" onclick="applyDateFilter('only-weekend')">僅選六日</button>
             <button class="px-3 py-1.5 text-xs font-bold border rounded-lg hover:bg-slate-100 text-red-500 border-red-200" onclick="applyDateFilter('clear')">清除當月</button>
         </div>
-        
         <div class="calendar-grid" id="calendarGrid"></div>
-        
         <div class="flex justify-end gap-2 mt-6">
             <button class="px-5 py-2 text-slate-500 hover:bg-slate-100 rounded-xl font-bold" onclick="closeDateModal()">取消</button>
             <button class="px-5 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 font-bold shadow-lg" onclick="saveDateModal()">確定選取</button>
@@ -310,7 +283,6 @@
     </div>
   </div>
 
-  <!-- 其他 Modals -->
   <div id="cancelModal" class="fixed inset-0 bg-black/50 hidden items-center justify-center z-50 backdrop-blur-sm">
     <div class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm">
       <h3 class="text-lg font-bold text-slate-800 mb-2">身分驗證</h3>
@@ -361,18 +333,17 @@
   const $ = (s) => document.querySelector(s);
   let dbData = [];
 
-  // ⚠️ ★ 填入你的 Apps Script Web App URL ★
+  // ⚠️ ★ 請填入您的 Apps Script Web App URL ★
   const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXoEVaT6bGjnpjQXLb2Wx9NXx2RR-p9ZNRF_0dzWCIZMXpBULaWMLam0NtItzhU2ejhA/exec';
   
-  // ★ 填入你的 Google 日曆 embed URL
+  // ★ 填入您的 Google 日曆 embed URL
   const CALENDAR_EMBED_URL = 'https://calendar.google.com/calendar/embed?src=5d3470b8ffb11daa8db6817414d5eedacc728c0cde687d295a3b29e5e82214d1%40group.calendar.google.com&ctz=Asia%2FTaipei';
 
-  // 內建假日表 (參考用)
+  // 內建假日表
   const builtInHolidays = {
     '2025-1-1':true, '2025-1-25':true, '2025-1-26':true, '2025-1-27':true, '2025-1-28':true, '2025-1-29':true, '2025-1-30':true, '2025-1-31':true, '2025-2-1':true, '2025-2-2':true, '2025-2-28':true, '2025-4-3':true, '2025-4-4':true, '2025-4-5':true, '2025-4-6':true, '2025-5-30':true, '2025-5-31':true, '2025-6-1':true, '2025-10-4':true, '2025-10-5':true, '2025-10-6':true, '2025-10-10':true, '2025-10-11':true, '2025-10-12':true
   };
 
-  // ==================== UUID ====================
   function generateUUID() {
     if (typeof crypto !== 'undefined' && crypto.randomUUID) { try { return crypto.randomUUID(); } catch(e) {} }
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -381,13 +352,9 @@
     });
   }
 
-  // ==================== 初始化 ====================
   function toggleMobileSidebar() {
-    const a = $('aside');
-    if (!a) return;
-    a.classList.toggle('hidden');
-    a.classList.toggle('absolute');
-    a.classList.toggle('h-full');
+    const a = $('aside'); if (!a) return;
+    a.classList.toggle('hidden'); a.classList.toggle('absolute'); a.classList.toggle('h-full');
   }
 
   if ($('#calendarFrame')) $('#calendarFrame').src = CALENDAR_EMBED_URL;
@@ -396,7 +363,6 @@
   const SAFETY_HIGH = "⚠️ 依內政部消防署109年9月29日消署訓字第1091700957號函頒「消防機關辦理各項救災訓練安全管理指導原則」辦理，請指派資深教官負責全盤訓練安全事宜。\n⚠️ 借用單位請於訓後將場地復原並維持場地整潔。";
   const SAFETY_LOW = "⚠️ 請借用單位訓後將場地復原並維持場地整潔。";
 
-  // 場地安全文字
   const facilityEl = $('#facility');
   if (facilityEl) {
     facilityEl.addEventListener('change', (e) => {
@@ -413,149 +379,82 @@
   }
   if ($('#safetyText')) $('#safetyText').innerText = SAFETY_LOW;
 
-  // 全天勾選
   const isAllDayEl = $('#isAllDay');
   if (isAllDayEl) {
     isAllDayEl.addEventListener('change', (e) => {
       const s = $('#startTime'), eEnd = $('#endTime');
       if (!s || !eEnd) return;
       if (e.target.checked) {
-        s.value = "08:00"; eEnd.value = "17:00";
-        s.classList.add('disabled-input'); eEnd.classList.add('disabled-input');
+        s.value = "08:00"; eEnd.value = "17:00"; s.classList.add('disabled-input'); eEnd.classList.add('disabled-input');
       } else {
         s.classList.remove('disabled-input'); eEnd.classList.remove('disabled-input');
       }
     });
   }
 
-  // 申請模式切換
   function updateApplyMode() {
     const modeInput = document.querySelector('input[name="applyMode"]:checked');
     const mode = modeInput ? modeInput.value : 'single';
-    
     const singleContainer = $('#singleDateContainer');
     const multiWrap = $('#multiDateWrap');
     const singleDate = $('#date');
-
     if (!singleContainer || !multiWrap) return;
-
     if (mode === 'single') {
-      singleContainer.classList.remove('hidden');
-      multiWrap.classList.add('hidden');
-      if (singleDate) singleDate.required = true;
+      singleContainer.classList.remove('hidden'); multiWrap.classList.add('hidden'); if (singleDate) singleDate.required = true;
     } else {
-      singleContainer.classList.add('hidden');
-      multiWrap.classList.remove('hidden');
-      if (singleDate) singleDate.required = false;
+      singleContainer.classList.add('hidden'); multiWrap.classList.remove('hidden'); if (singleDate) singleDate.required = false;
     }
   }
-
   document.querySelectorAll('input[name="applyMode"]').forEach(r => r.addEventListener('change', updateApplyMode));
   updateApplyMode();
 
-  // ==================== 日曆選擇器邏輯 (移植版) ====================
+  // 日曆選擇器變數
   let pickerYear = new Date().getFullYear();
   let currentCalendarMonth = new Date().getMonth() + 1;
-  let selectedDatesSet = new Set(); // 存 "2025-1-1" 格式
-  let finalSelectedDates = [];      // 存 "2025-01-01" 格式 (送出用)
+  let selectedDatesSet = new Set();
+  let finalSelectedDates = [];
 
   function openDateModal() {
-    const modal = $('#dateModal');
-    if(!modal) return;
-    // 重置選取狀態
-    if(finalSelectedDates.length > 0) {
-        // 如果已經有選過的，嘗試還原
-        // 這裡簡化處理：每次打開都清空，或者保留上次的 Set
-    }
-    renderCalendar();
-    updateModalRangeText();
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    const modal = $('#dateModal'); if(!modal) return;
+    renderCalendar(); updateModalRangeText(); modal.classList.remove('hidden'); modal.classList.add('flex');
   }
-
   function closeDateModal() {
-    const modal = $('#dateModal');
-    if(!modal) return;
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
+    const modal = $('#dateModal'); if(!modal) return; modal.classList.add('hidden'); modal.classList.remove('flex');
   }
-
-  function changePickerYear(val) {
-    pickerYear = parseInt(val);
-    selectedDatesSet.clear();
-    renderCalendar();
-    updateModalRangeText();
-  }
-
+  function changePickerYear(val) { pickerYear = parseInt(val); selectedDatesSet.clear(); renderCalendar(); updateModalRangeText(); }
   function isDayOff(year, month, day) {
     const key = `${year}-${month}-${day}`;
     if (builtInHolidays[key]) return true;
-    const d = new Date(year, month - 1, day);
-    const w = d.getDay();
-    return w === 0 || w === 6;
+    const d = new Date(year, month - 1, day); const w = d.getDay(); return w === 0 || w === 6;
   }
-
-  function renderCalendar() {
-    const grid = $('#calendarGrid');
-    if(!grid) return;
-    grid.innerHTML = '';
-    
-    const header = document.createElement('div');
-    header.className = "col-span-7 flex justify-between items-center mb-2";
-    header.innerHTML = `
-        <button type="button" onclick="changeMonth(-1)" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200"><i class="ri-arrow-left-s-line"></i></button>
-        <span class="font-bold text-lg text-indigo-600">${currentCalendarMonth} 月</span>
-        <button type="button" onclick="changeMonth(1)" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200"><i class="ri-arrow-right-s-line"></i></button>
-    `;
-    grid.appendChild(header);
-
-    ['日', '一', '二', '三', '四', '五', '六'].forEach(d => {
-        const div = document.createElement('div');
-        div.className = "text-center text-xs font-bold text-slate-500 py-1";
-        div.innerText = d;
-        grid.appendChild(div);
-    });
-    
-    const daysInMonth = new Date(pickerYear, currentCalendarMonth, 0).getDate();
-    const firstDay = new Date(pickerYear, currentCalendarMonth - 1, 1).getDay();
-
-    for (let i = 0; i < firstDay; i++) { grid.appendChild(document.createElement('div')); }
-
-    for (let d = 1; d <= daysInMonth; d++) {
-        const key = `${pickerYear}-${currentCalendarMonth}-${d}`;
-        const isActive = selectedDatesSet.has(key);
-        const isHoliday = isDayOff(pickerYear, currentCalendarMonth, d);
-        
-        let extraClass = '';
-        if (isHoliday) {
-             // 國定假日或週末，給不同樣式
-             extraClass = builtInHolidays[`${pickerYear}-${currentCalendarMonth}-${d}`] ? 'holiday-red' : 'weekend';
-        }
-
-        const btn = document.createElement('div');
-        btn.className = `day-btn ${isActive ? 'active' : ''} ${extraClass}`;
-        btn.innerText = d;
-        btn.onclick = () => { 
-            if (selectedDatesSet.has(key)) selectedDatesSet.delete(key); 
-            else selectedDatesSet.add(key); 
-            renderCalendar(); 
-            updateModalRangeText(); 
-        };
-        grid.appendChild(btn);
-    }
-  }
-
   function changeMonth(delta) {
     currentCalendarMonth += delta;
     if (currentCalendarMonth < 1) { currentCalendarMonth = 12; pickerYear--; }
     if (currentCalendarMonth > 12) { currentCalendarMonth = 1; pickerYear++; }
-    $('#pickerYearSelect').value = pickerYear;
-    renderCalendar();
-    updateModalRangeText();
+    $('#pickerYearSelect').value = pickerYear; renderCalendar(); updateModalRangeText();
   }
+  function updateModalRangeText() { $('#modalRangeText').innerText = `已選取 ${selectedDatesSet.size} 天`; }
 
-  function updateModalRangeText() {
-    $('#modalRangeText').innerText = `已選取 ${selectedDatesSet.size} 天`;
+  function renderCalendar() {
+    const grid = $('#calendarGrid'); if(!grid) return; grid.innerHTML = '';
+    const header = document.createElement('div'); header.className = "col-span-7 flex justify-between items-center mb-2";
+    header.innerHTML = `<button type="button" onclick="changeMonth(-1)" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200"><i class="ri-arrow-left-s-line"></i></button><span class="font-bold text-lg text-indigo-600">${currentCalendarMonth} 月</span><button type="button" onclick="changeMonth(1)" class="px-2 py-1 bg-slate-100 rounded hover:bg-slate-200"><i class="ri-arrow-right-s-line"></i></button>`;
+    grid.appendChild(header);
+    ['日','一','二','三','四','五','六'].forEach(d => { const div = document.createElement('div'); div.className = "text-center text-xs font-bold text-slate-500 py-1"; div.innerText = d; grid.appendChild(div); });
+    const daysInMonth = new Date(pickerYear, currentCalendarMonth, 0).getDate();
+    const firstDay = new Date(pickerYear, currentCalendarMonth - 1, 1).getDay();
+    for (let i = 0; i < firstDay; i++) { grid.appendChild(document.createElement('div')); }
+    for (let d = 1; d <= daysInMonth; d++) {
+        const key = `${pickerYear}-${currentCalendarMonth}-${d}`;
+        const isActive = selectedDatesSet.has(key);
+        const isHoliday = isDayOff(pickerYear, currentCalendarMonth, d);
+        let extraClass = isHoliday ? (builtInHolidays[key] ? 'holiday-red' : 'weekend') : '';
+        const btn = document.createElement('div');
+        btn.className = `day-btn ${isActive ? 'active' : ''} ${extraClass}`;
+        btn.innerText = d;
+        btn.onclick = () => { if (selectedDatesSet.has(key)) selectedDatesSet.delete(key); else selectedDatesSet.add(key); renderCalendar(); updateModalRangeText(); };
+        grid.appendChild(btn);
+    }
   }
 
   function applyDateFilter(type) {
@@ -568,42 +467,26 @@
         else if (type === 'no-weekend') { if (!isHoliday) selectedDatesSet.add(key); else selectedDatesSet.delete(key); }
         else if (type === 'only-weekend') { if (isHoliday) selectedDatesSet.add(key); else selectedDatesSet.delete(key); }
     }
-    renderCalendar();
-    updateModalRangeText();
+    renderCalendar(); updateModalRangeText();
   }
 
   function saveDateModal() {
-    // 將 Set 轉換為格式化陣列並排序
     finalSelectedDates = Array.from(selectedDatesSet).map(s => {
         const [y, m, d] = s.split('-').map(Number);
-        const mm = m < 10 ? '0'+m : m;
-        const dd = d < 10 ? '0'+d : d;
-        return `${y}-${mm}-${dd}`;
+        return `${y}-${m < 10 ? '0'+m : m}-${d < 10 ? '0'+d : d}`;
     }).sort();
-
-    renderDateTags();
-    closeDateModal();
+    renderDateTags(); closeDateModal();
   }
 
   function renderDateTags() {
-    const container = $('#dateTagContainer');
-    const msg = $('#emptyDateMsg');
+    const container = $('#dateTagContainer'); const msg = $('#emptyDateMsg');
     container.innerHTML = '';
-    
-    if (finalSelectedDates.length === 0) {
-        msg.classList.remove('hidden');
-    } else {
-        msg.classList.add('hidden');
-        finalSelectedDates.forEach(dateStr => {
-            const tag = document.createElement('div');
-            tag.className = 'bg-indigo-50 text-indigo-700 text-xs font-bold px-2 py-1 rounded border border-indigo-200 flex items-center gap-2';
-            tag.innerHTML = `<span>${dateStr}</span>`; 
-            container.appendChild(tag);
-        });
-    }
+    if (finalSelectedDates.length === 0) { msg.classList.remove('hidden'); }
+    else { msg.classList.add('hidden'); finalSelectedDates.forEach(dateStr => { const tag = document.createElement('div'); tag.className = 'bg-indigo-50 text-indigo-700 text-xs font-bold px-2 py-1 rounded border border-indigo-200 flex items-center gap-2'; tag.innerHTML = `<span>${dateStr}</span>`; container.appendChild(tag); }); }
   }
+  function addDateToList() { openDateModal(); }
 
-  // ==================== 資料與表單 ====================
+  // === 資料處理 ===
   async function fetchData() {
     try {
       const res = await fetch(GAS_ENDPOINT);
@@ -612,10 +495,7 @@
       renderList();
       renderTodo();
       showToast('同步完成', '資料已更新', 'success');
-    } catch (e) {
-      console.error(e);
-      showToast('同步失敗', '無法取得最新資料', 'error');
-    }
+    } catch (e) { console.error(e); showToast('同步失敗', '無法取得最新資料', 'error'); }
   }
   $('#syncBtn').onclick = fetchData;
   fetchData();
@@ -626,6 +506,11 @@
     if (!statusStr.includes('使用中')) missing.push('中');
     if (!statusStr.includes('歸還後')) missing.push('後');
     return missing;
+  }
+
+  // ★ 關鍵修正：檢查是否包含 "結案" 或 "免"
+  function isCaseClosed(statusStr) {
+      return statusStr && (statusStr.includes("結案") || statusStr.includes("免"));
   }
 
   function renderTodo() {
@@ -639,17 +524,15 @@
       if (!x.status.includes('已核准')) return false;
       if (x.date > today) return false;
       const s = x.uploadStatus || "";
+      // ★ 新增判斷：如果已結案，就不算待辦事項
+      if (isCaseClosed(s)) return false;
       return !(s.includes("使用前") && s.includes("使用中") && s.includes("歸還後"));
     });
 
     if (pendingItems.length > 0) {
-      badge.innerText = pendingItems.length;
-      badge.classList.remove('hidden');
-      todoSection.classList.remove('hidden');
+      badge.innerText = pendingItems.length; badge.classList.remove('hidden'); todoSection.classList.remove('hidden');
     } else {
-      badge.classList.add('hidden');
-      todoSection.classList.add('hidden');
-      return;
+      badge.classList.add('hidden'); todoSection.classList.add('hidden'); return;
     }
 
     todoContainer.innerHTML = pendingItems.map(item => {
@@ -666,9 +549,7 @@
   }
 
   function updateWeeklyNotice() {
-    const con = $('#weeklyNotice');
-    if (!con) return;
-    con.innerHTML = '';
+    const con = $('#weeklyNotice'); if (!con) return; con.innerHTML = '';
     let has = false;
     for (let i = 0; i < 7; i++) {
       const d = new Date(); d.setDate(new Date().getDate() + i);
@@ -676,11 +557,7 @@
       const books = dbData.filter(x => x.date === ds && x.status.includes('已核准'));
       if (books.length) {
         has = true;
-        con.innerHTML += `
-          <div class="text-xs border-b border-slate-100 pb-2 last:border-0">
-            <div class="font-bold text-indigo-600 mb-1">${ds}</div>
-            ${books.map(b => `<div class="flex justify-between bg-slate-50 px-2 py-1 rounded text-slate-600"><span>${b.facility}</span><span>${b.startTime}-${b.endTime}</span></div>`).join('')}
-          </div>`;
+        con.innerHTML += `<div class="text-xs border-b border-slate-100 pb-2 last:border-0"><div class="font-bold text-indigo-600 mb-1">${ds}</div>${books.map(b => `<div class="flex justify-between bg-slate-50 px-2 py-1 rounded text-slate-600"><span>${b.facility}</span><span>${b.startTime}-${b.endTime}</span></div>`).join('')}</div>`;
       }
     }
     if (!has) con.innerHTML = '<div class="text-sm text-slate-400 py-4 text-center">未來 7 天無核准預約</div>';
@@ -690,84 +567,46 @@
   if (bookingForm) {
     bookingForm.addEventListener('submit', async e => {
       e.preventDefault();
-      const sTime = $('#startTime').value;
-      const eTime = $('#endTime').value;
+      const sTime = $('#startTime').value; const eTime = $('#endTime').value;
       if (sTime && eTime && eTime <= sTime) { alert('時間錯誤：結束時間需晚於開始時間'); return; }
-
-      let facVal = $('#facility').value;
-      if (facVal === 'other') facVal = $('#customFacility').value.trim();
+      let facVal = $('#facility').value; if (facVal === 'other') facVal = $('#customFacility').value.trim();
       if (!facVal) { alert('請選擇或輸入場地'); return; }
-
-      const btn = $('#submitBtn');
-      if (btn.disabled) return;
-      const originalBtnText = btn.innerHTML;
-      btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 處理中...';
-      btn.disabled = true;
-
+      const btn = $('#submitBtn'); if (btn.disabled) return;
+      const originalBtnText = btn.innerHTML; btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 處理中...'; btn.disabled = true;
       try {
         const isEdit = $('#editId').value !== "";
-        const base = {
-          unit: $('#unit').value, contact: $('#contact').value, phone: $('#phone').value, email: $('#email').value,
-          facility: facVal, purpose: $('#purpose').value, startTime: sTime, endTime: eTime,
-          id: isEdit ? $('#editId').value : generateUUID()
-        };
-
+        const base = { unit: $('#unit').value, contact: $('#contact').value, phone: $('#phone').value, email: $('#email').value, facility: facVal, purpose: $('#purpose').value, startTime: sTime, endTime: eTime, id: isEdit ? $('#editId').value : generateUUID() };
         if (isEdit) {
           await fetch(GAS_ENDPOINT, { method: 'POST', headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ ...base, date: $('#date').value, action: 'edit' }) });
-          showToast('更新成功', '已儲存變更', 'success');
-          resetForm(); setTimeout(fetchData, 1500);
+          showToast('更新成功', '已儲存變更', 'success'); resetForm(); setTimeout(fetchData, 1500);
         } else {
           const applyMode = document.querySelector('input[name="applyMode"]:checked').value;
           let dates = [];
-          if (applyMode === 'single') {
-            if (!$('#date').value) throw new Error('請填寫單日日期');
-            dates = [$('#date').value];
-          } else {
-            if (finalSelectedDates.length === 0) { alert('請至少選擇一個日期'); throw new Error('未選擇日期'); }
-            dates = [...finalSelectedDates];
-          }
-
+          if (applyMode === 'single') { if (!$('#date').value) throw new Error('請填寫單日日期'); dates = [$('#date').value]; } 
+          else { if (finalSelectedDates.length === 0) { alert('請至少選擇一個日期'); throw new Error('未選擇日期'); } dates = [...finalSelectedDates]; }
           await fetch(GAS_ENDPOINT, { method: 'POST', headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ ...base, dates: dates, action: 'create_batch' }) });
-          showToast('申請成功', `已送出 ${dates.length} 筆紀錄，待審核。`, 'success');
-          resetForm(); setTimeout(fetchData, 1500);
+          showToast('申請成功', `已送出 ${dates.length} 筆紀錄，待審核。`, 'success'); resetForm(); setTimeout(fetchData, 1500);
         }
-      } catch (err) {
-        console.error(err);
-        if (err.message !== '未選擇日期') { alert('提交失敗'); showToast('提交失敗', '請稍後再試', 'error'); }
-      } finally {
-        btn.innerHTML = originalBtnText; btn.classList.remove('bg-emerald-600'); btn.classList.add('bg-slate-900');
-        if ($('#editId').value) { btn.innerHTML = "<i class='ri-save-line'></i> 儲存變更"; btn.classList.add('bg-emerald-600'); } else { btn.innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請"; }
-        btn.disabled = false;
-      }
+      } catch (err) { console.error(err); if (err.message !== '未選擇日期') { alert('提交失敗'); showToast('提交失敗', '請稍後再試', 'error'); } } 
+      finally { btn.innerHTML = originalBtnText; btn.classList.remove('bg-emerald-600'); btn.classList.add('bg-slate-900'); if ($('#editId').value) { btn.innerHTML = "<i class='ri-save-line'></i> 儲存變更"; btn.classList.add('bg-emerald-600'); } else { btn.innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請"; } btn.disabled = false; }
     });
   }
 
-  // === 照片上傳 ===
   $('#photoFile').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if(file){ const reader = new FileReader(); reader.onload = (e2) => { $('#photoPreview').style.backgroundImage = `url(${e2.target.result})`; $('#photoPreview').classList.remove('hidden'); }; reader.readAsDataURL(file); }
+    const file = e.target.files[0]; if(file){ const reader = new FileReader(); reader.onload = (e2) => { $('#photoPreview').style.backgroundImage = `url(${e2.target.result})`; $('#photoPreview').classList.remove('hidden'); }; reader.readAsDataURL(file); }
   });
-
-  window.openPhotoModal = (id) => {
-    $('#photoTargetId').value = id; $('#photoFile').value = ''; $('#photoPreview').classList.add('hidden'); $('#progressText').classList.add('hidden'); $('#photoModal').classList.replace('hidden', 'flex');
-  };
-
+  window.openPhotoModal = (id) => { $('#photoTargetId').value = id; $('#photoFile').value = ''; $('#photoPreview').classList.add('hidden'); $('#progressText').classList.add('hidden'); $('#photoModal').classList.replace('hidden', 'flex'); };
   $('#photoForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const file = $('#photoFile').files[0]; if(!file) return alert('請選擇照片');
-    const btn = $('#uploadBtn'); btn.innerHTML = '處理中...'; btn.disabled = true;
-    $('#progressText').textContent = '上傳中...'; $('#progressText').classList.remove('hidden');
-
+    e.preventDefault(); const file = $('#photoFile').files[0]; if(!file) return alert('請選擇照片');
+    const btn = $('#uploadBtn'); btn.innerHTML = '處理中...'; btn.disabled = true; $('#progressText').textContent = '上傳中...'; $('#progressText').classList.remove('hidden');
     try {
         const resized = await compressImage(file);
         const type = document.querySelector('input[name="photoType"]:checked').value;
         const res = await fetch(GAS_ENDPOINT, { method: 'POST', headers: {"Content-Type": "text/plain"}, body: JSON.stringify({ action: 'upload_photo', id: $('#photoTargetId').value, fileData: resized.split(',')[1], mimeType: 'image/jpeg', photoType: type }) });
         const result = await res.json();
-        if(result.status === 'success') { showToast('上傳成功', '照片已存入雲端', 'success'); $('#photoModal').classList.replace('flex', 'hidden'); setTimeout(fetchData, 1500); }
-        else alert(result.message || '上傳失敗');
+        if(result.status === 'success') { showToast('上傳成功', '照片已存入雲端', 'success'); $('#photoModal').classList.replace('flex', 'hidden'); setTimeout(fetchData, 1500); } else alert(result.message || '上傳失敗');
     } catch(err) { alert('上傳錯誤'); } finally { btn.innerHTML = '開始上傳'; btn.disabled = false; $('#progressText').classList.add('hidden'); }
   });
-
   function compressImage(file) {
     return new Promise((resolve) => {
         const reader = new FileReader(); reader.readAsDataURL(file);
@@ -782,45 +621,40 @@
     });
   }
 
-  // === 編輯與重置 ===
   window.editRecord = (id) => {
     const r = dbData.find(x => x.id === id); if(!r) return;
     $('#editId').value = r.id; $('#unit').value = r.unit; $('#contact').value = r.contact; $('#phone').value = r.phone; $('#email').value = r.email; $('#facility').value = r.facility; $('#purpose').value = r.purpose;
     $('#date').value = r.date; $('#startTime').value = r.startTime; $('#endTime').value = r.endTime;
     $('#modeSingle').checked = true; updateApplyMode();
-    $('#formTitle').textContent = "編輯預約申請"; $('#submitBtn').innerHTML = "<i class='ri-save-line'></i> 儲存變更"; $('#submitBtn').classList.add('bg-emerald-600'); $('#cancelEditBtn').classList.remove('hidden');
-    switchView('form');
+    $('#formTitle').textContent = "編輯預約申請"; $('#submitBtn').innerHTML = "<i class='ri-save-line'></i> 儲存變更"; $('#submitBtn').classList.add('bg-emerald-600'); $('#cancelEditBtn').classList.remove('hidden'); switchView('form');
   };
-
   $('#cancelEditBtn').onclick = resetForm;
-
   function resetForm() {
     $('#bookingForm').reset(); $('#editId').value = ""; $('#date').value = new Date().toISOString().slice(0, 10);
-    // 重置日曆選擇
     selectedDatesSet.clear(); finalSelectedDates = []; renderDateTags();
-    $('#formTitle').textContent = "新增預約申請"; $('#submitBtn').innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請"; $('#submitBtn').classList.remove('bg-emerald-600'); $('#submitBtn').classList.add('bg-slate-900');
-    $('#cancelEditBtn').classList.add('hidden');
-    $('#modeSingle').checked = true; updateApplyMode();
+    $('#formTitle').textContent = "新增預約申請"; $('#submitBtn').innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請"; $('#submitBtn').classList.remove('bg-emerald-600'); $('#submitBtn').classList.add('bg-slate-900'); $('#cancelEditBtn').classList.add('hidden'); $('#modeSingle').checked = true; updateApplyMode();
   }
-
-  // === 取消申請 ===
-  window.openCancelModal = (id, isBatch) => {
-    $('#cancelTargetId').value = id; $('#cancelType').value = isBatch ? 'batch' : 'single'; $('#verifyEmail').value = ''; $('#cancelReason').value = '';
-    $('#cancelModal').classList.replace('hidden', 'flex');
-  };
-
+  window.openCancelModal = (id, isBatch) => { $('#cancelTargetId').value = id; $('#cancelType').value = isBatch ? 'batch' : 'single'; $('#verifyEmail').value = ''; $('#cancelReason').value = ''; $('#cancelModal').classList.replace('hidden', 'flex'); };
   $('#cancelForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const btn = $('#confirmCancelBtn'); btn.innerHTML = '驗證中...'; btn.disabled = true;
+    e.preventDefault(); const btn = $('#confirmCancelBtn'); btn.innerHTML = '驗證中...'; btn.disabled = true;
     try {
         const res = await fetch(GAS_ENDPOINT, { method: 'POST', headers: {"Content-Type": "text/plain"}, body: JSON.stringify({ action: $('#cancelType').value === 'batch' ? 'cancel_batch' : 'cancel_request', [$('#cancelType').value === 'batch' ? 'batchId' : 'id']: $('#cancelTargetId').value, verifyEmail: $('#verifyEmail').value.trim(), reason: $('#cancelReason').value.trim() }) });
         const result = await res.json();
-        if(result.status === 'success') { showToast('已送出', '取消申請已送交管理者', 'success'); $('#cancelModal').classList.replace('flex', 'hidden'); setTimeout(fetchData, 1500); }
-        else alert(result.message || '申請失敗');
+        if(result.status === 'success') { showToast('已送出', '取消申請已送交管理者', 'success'); $('#cancelModal').classList.replace('flex', 'hidden'); setTimeout(fetchData, 1500); } else alert(result.message || '申請失敗');
     } catch(err) { showToast('錯誤', '請稍後再試', 'error'); } finally { btn.innerHTML = '送出'; btn.disabled = false; }
   });
 
-  // === 列表渲染 ===
+  // ★ 新增功能：手動結案按鈕
+  window.manualClose = async (id) => {
+      if(!confirm("確定要手動結案嗎？\n這將消除此預約的缺件提醒。")) return;
+      try {
+          const res = await fetch(GAS_ENDPOINT, { method: 'POST', headers: {"Content-Type": "text/plain"}, body: JSON.stringify({ action: 'manual_close', id: id }) });
+          const result = await res.json();
+          if(result.status === 'success') { showToast('已結案', '缺件提醒已消除', 'success'); setTimeout(fetchData, 1000); }
+          else alert('失敗: ' + result.message);
+      } catch(e) { alert('系統錯誤'); }
+  };
+
   function renderList() {
     const container = $('#bookingListContainer'); if(!container) return; container.innerHTML = '';
     const filter = $('#searchInput').value.toLowerCase();
@@ -834,9 +668,12 @@
         const items = groups[key], f = items[0], isMulti = items.length > 1;
         const color = f.status.includes("核准") ? "text-emerald-600 bg-emerald-50" : (f.status.includes("撞期") ? "text-rose-600 bg-rose-50" : "text-amber-600 bg-amber-50");
         let missingPhotoInfo = '';
-        if(f.status.includes("核准") && f.date <= today && items.some(i => !(i.uploadStatus||"").includes("前") || !(i.uploadStatus||"").includes("中") || !(i.uploadStatus||"").includes("後"))) {
+
+        // ★ 修改判斷邏輯：如果已結案，不顯示缺件提醒
+        if(f.status.includes("核准") && f.date <= today && items.some(i => !isCaseClosed(i.uploadStatus) && (!(i.uploadStatus||"").includes("前") || !(i.uploadStatus||"").includes("中") || !(i.uploadStatus||"").includes("後")))) {
             missingPhotoInfo = `<div class="ml-2 flex items-center gap-2"><span class="text-xs text-rose-600 font-bold">● 缺件</span></div>`;
         }
+        
         const card = document.createElement('div');
         card.className = "card-root bg-white border border-slate-200 rounded-xl shadow-sm overflow-hidden mb-3";
         card.innerHTML = `
@@ -849,26 +686,42 @@
                 <div class="flex items-center gap-2"><span class="text-xs font-bold px-2 py-1 rounded ${color}">${f.status.split(' ')[1]||f.status}</span>${isMulti ? `<button onclick="event.stopPropagation(); openCancelModal('${f.batchId}', true)" class="text-rose-500 hover:bg-rose-50 p-1.5 rounded text-xs border border-rose-200"><i class="ri-close-circle-line"></i> 整批取消</button>` : ''}</div>
             </div>
             <div class="details-panel hidden border-t border-slate-100 bg-slate-50 p-3 space-y-2">
-                ${items.map(i => `<div class="flex flex-col gap-2 bg-white p-2 rounded border border-slate-200"><div class="flex items-center justify-between text-sm"><div class="flex items-center gap-3"><span class="font-mono text-slate-600">${i.date}</span><span class="font-mono font-bold text-indigo-600">${i.startTime}-${i.endTime}</span><span class="text-slate-500 text-xs">${i.status}</span></div><div class="flex gap-2 items-center">${i.status.includes('核准') ? `<button onclick="openPhotoModal('${i.id}')" class="text-indigo-500 hover:bg-indigo-50 p-1 rounded"><i class="ri-camera-line text-lg"></i></button>` : ''}<button onclick="openCancelModal('${i.id}', false)" class="text-rose-500 hover:bg-rose-50 p-1 rounded"><i class="ri-close-circle-line"></i></button></div></div>${i.folderUrl ? `<div class="text-xs flex items-center justify-between bg-slate-50 p-1 rounded"><a href="${i.folderUrl}" target="_blank" class="text-blue-500 hover:underline flex items-center gap-1"><i class="ri-folder-open-line"></i> 開啟資料夾</a></div>` : ''}</div>`).join('')}
+                ${items.map(i => {
+                    const isClosed = isCaseClosed(i.uploadStatus);
+                    return `
+                    <div class="flex flex-col gap-2 bg-white p-2 rounded border border-slate-200">
+                        <div class="flex items-center justify-between text-sm">
+                            <div class="flex items-center gap-3">
+                                <span class="font-mono text-slate-600">${i.date}</span>
+                                <span class="font-mono font-bold text-indigo-600">${i.startTime}-${i.endTime}</span>
+                                <span class="text-slate-500 text-xs">${i.status}</span>
+                                ${isClosed ? '<span class="text-xs text-emerald-600 font-bold border border-emerald-200 bg-emerald-50 px-1 rounded">已結案</span>' : ''}
+                            </div>
+                            <div class="flex gap-2 items-center">
+                                ${i.status.includes('核准') && !isClosed ? `<button onclick="window.manualClose('${i.id}')" class="text-emerald-600 hover:bg-emerald-50 p-1 rounded text-xs font-bold border border-emerald-200">✅ 結案</button>` : ''}
+                                ${i.status.includes('核准') ? `<button onclick="openPhotoModal('${i.id}')" class="text-indigo-500 hover:bg-indigo-50 p-1 rounded"><i class="ri-camera-line text-lg"></i></button>` : ''}
+                                <button onclick="openCancelModal('${i.id}', false)" class="text-rose-500 hover:bg-rose-50 p-1 rounded"><i class="ri-close-circle-line"></i></button>
+                            </div>
+                        </div>
+                        ${i.folderUrl ? `<div class="text-xs flex items-center justify-between bg-slate-50 p-1 rounded"><a href="${i.folderUrl}" target="_blank" class="text-blue-500 hover:underline flex items-center gap-1"><i class="ri-folder-open-line"></i> 開啟資料夾</a></div>` : ''}
+                    </div>`
+                }).join('')}
             </div>`;
         container.appendChild(card);
     });
   }
   $('#searchInput').addEventListener('input', renderList);
 
-  // ==================== CSV 匯出 ====================
   $('#exportCsvBtn').onclick = () => {
     if(!dbData.length) return alert('無資料');
     const csv = '\ufeff狀態,日期,開始,結束,場地,單位\n' + dbData.map(r => `${r.status},${r.date},${r.startTime},${r.endTime},"${r.facility}","${r.unit}"`).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = 'Booking.csv'; a.click();
   };
-
   function showToast(t, m, type) {
     const o = $('#toast'); $('#toastTitle').textContent = t; $('#toastMsg').textContent = m;
     $('#toastIcon').className = `text-2xl ri-${type === 'success' ? 'checkbox-circle-fill text-emerald-400' : 'error-warning-fill text-rose-400'}`;
     o.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => o.classList.add('translate-y-20', 'opacity-0'), 3000);
   }
-
   window.switchView = (v) => { document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden')); $('#view-'+v).classList.remove('hidden'); };
 </script>
 </body>
