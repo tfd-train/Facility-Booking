@@ -38,14 +38,24 @@
     .weekend { background-color: #f8fafc; color: #64748b; }
 
     /* ★ 覆寫 FullCalendar 的樣式讓它配 Tailwind */
-    .fc-event { cursor: pointer; border: none !important; padding: 1px 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+    .fc-event { cursor: pointer; padding: 2px 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); border-radius: 4px; }
     .fc-theme-standard th { border-color: #e2e8f0; padding: 6px 0; font-weight: 600; font-size: 13px; color: #475569; }
     .fc-theme-standard td, .fc-theme-standard th { border-color: #f1f5f9; }
     .fc .fc-toolbar-title { font-size: 1.1rem !important; font-weight: bold; color: #4f46e5; }
     .fc .fc-button-primary { background-color: #f1f5f9 !important; border: 1px solid #e2e8f0 !important; color: #475569 !important; padding: 0.3rem 0.6rem !important; font-size: 13px !important; text-transform: capitalize; }
     .fc .fc-button-primary:hover, .fc .fc-button-primary:active, .fc .fc-button-active { background-color: #4f46e5 !important; color: white !important; border-color: #4f46e5 !important; }
     .fc-list-event:hover td { background-color: #f8fafc !important; }
-    .fc-event-time, .fc-event-title { font-size: 0.75rem; }
+    
+    /* 讓 "+X 更多" 按鈕更明顯，並且點開的 Popover 樣式更漂亮 */
+    .fc-daygrid-more-link { font-weight: bold; color: #3b82f6 !important; font-size: 0.75rem; padding-left: 4px; }
+    .fc-popover { border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); border: 1px solid #e2e8f0; z-index: 50; }
+    .fc-popover-header { background-color: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 8px 12px; font-weight: bold; color: #334155; border-radius: 12px 12px 0 0; }
+    
+    /* ★ 毛玻璃 Loading 遮罩動畫 */
+    .loading-overlay { position: absolute; inset: 0; background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(2px); z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s ease; border-radius: inherit; }
+    .loading-overlay.active { opacity: 1; pointer-events: all; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 
   <script>
@@ -112,7 +122,7 @@
     <div class="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scroll-smooth">
       
       <!-- View: Form -->
-      <div id="view-form" class="max-w-7xl mx-auto animate-fade-in grid lg:grid-cols-3 gap-6">
+      <div id="view-form" class="max-w-7xl mx-auto animate-fade-in grid lg:grid-cols-3 gap-6 relative">
         <div class="lg:col-span-2 space-y-6">
             
             <!-- 🔴 待補照片提醒區塊 -->
@@ -130,7 +140,7 @@
                   <h2 id="formTitle" class="text-2xl font-bold text-slate-800">新增預約申請</h2>
                   <p class="text-slate-500 text-sm mt-1">請詳閱規範，送出後系統將自動寄信通知。</p>
                 </div>
-                <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1">
+                <button id="syncBtn" class="text-sm text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1 font-bold">
                   <i class="ri-refresh-line"></i> 重新同步
                 </button>
             </div>
@@ -241,8 +251,12 @@
             </div>
         </div>
         
-        <div class="space-y-6">
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+        <div class="space-y-6 relative">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 relative overflow-hidden">
+            <!-- ★ 未來 7 天載入遮罩 -->
+            <div id="noticeLoading" class="loading-overlay active">
+                <div class="spinner"></div>
+            </div>
             <h3 class="font-bold text-slate-700 mb-3 text-sm uppercase tracking-wider">
               <i class="ri-calendar-2-line text-indigo-500"></i> 未來 7 天概況
             </h3>
@@ -250,16 +264,26 @@
           </div>
           
           <!-- ★ FullCalendar 容器 -->
-          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 h-[500px] flex flex-col">
-            <div id="calendar" class="h-full w-full"></div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-3 min-h-[500px] flex flex-col relative overflow-hidden">
+            <!-- ★ 日曆載入遮罩 -->
+            <div id="calendarLoading" class="loading-overlay active">
+                <div class="spinner mb-2"></div>
+                <span class="text-xs font-bold text-indigo-600 tracking-wider">系統資料同步中...</span>
+            </div>
+            <div id="calendar" class="h-full w-full flex-1"></div>
           </div>
           
         </div>
       </div>
 
       <!-- View: List -->
-      <div id="view-list" class="max-w-6xl mx-auto hidden animate-fade-in">
-         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[85vh]">
+      <div id="view-list" class="max-w-6xl mx-auto hidden animate-fade-in relative">
+         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[85vh] relative overflow-hidden">
+            <!-- ★ 清單載入遮罩 -->
+            <div id="listLoading" class="loading-overlay active">
+                <div class="spinner mb-2"></div>
+                <span class="text-sm font-bold text-indigo-600">載入預約清單...</span>
+            </div>
             <div class="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50/50">
                <h2 class="font-bold text-lg text-slate-700 flex items-center gap-2">
                  <i class="ri-file-list-3-line text-indigo-500"></i> 預約總表
@@ -347,7 +371,7 @@
   // ==================== 全域設定 ====================
   const $ = (s) => document.querySelector(s);
   let dbData =[];
-  let calendar; // ★ 新增日曆物件
+  let calendar; 
 
   // ⚠️ ★ 請填入您的 Apps Script Web App URL ★
   const GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbyXoEVaT6bGjnpjQXLb2Wx9NXx2RR-p9ZNRF_0dzWCIZMXpBULaWMLam0NtItzhU2ejhA/exec';
@@ -375,13 +399,12 @@
     const calendarEl = document.getElementById('calendar');
     if (calendarEl) {
         calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
+            initialView: 'listWeek', 
             locale: 'zh-tw',
             headerToolbar: {
                 left: 'prev,next today',
                 center: 'title',
-                // ★ 這裡加回了 月, 週, 清單 的切換按鈕
-                right: 'dayGridMonth,timeGridWeek,listWeek' 
+                right: 'listWeek,dayGridWeek,dayGridMonth' 
             },
             buttonText: {
                 today: '今天',
@@ -389,10 +412,30 @@
                 week: '週',
                 list: '清單'
             },
-            eventTimeFormat: {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false // 使用 24 小時制
+            eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+            
+            // ★ 策略：月與週最多顯示 3 筆，超過顯示 +X 更多 (點擊浮出清單)
+            dayMaxEvents: 3, 
+
+            // ★ 自訂渲染：清單顯示詳細，格子顯示極簡
+            eventContent: function(arg) {
+                if (arg.view.type === 'listWeek') {
+                    return { html: `<div class="font-bold text-slate-700">${arg.event.extendedProps.unit} <span class="font-normal text-slate-500 ml-1">- ${arg.event.title}</span></div>` };
+                } else {
+                    return { html: `<div class="text-[11px] px-1 font-bold truncate">${arg.event.title}</div>` };
+                }
+            },
+
+            // ★ Tooltip 提示
+            eventDidMount: function(info) {
+                if (info.event.extendedProps.description) {
+                    info.el.title = info.event.extendedProps.description; 
+                }
+            },
+
+            // ★ 點擊跳出詳細資訊
+            eventClick: function(info) {
+                alert(info.event.extendedProps.description);
             },
             events:[]
         });
@@ -527,33 +570,54 @@
   }
   function addDateToList() { openDateModal(); }
 
-  // ★ 更新 FullCalendar 內容
+  // ★ 更新 FullCalendar 內容 (馬卡龍色系)
   function updateFullCalendar() {
       if (!calendar) return;
-      const events = dbData.filter(x => x.status.includes('已核准')).map(x => ({
-          // ★ 標題加上借用單位，在清單視圖會更清楚
-          title: `${x.unit} - ${x.facility}`, 
-          // ★ 結合日期與時間 (YYYY-MM-DDTHH:MM:SS) 這樣在「週」視圖才會準確落在該時間格
-          start: `${x.date}T${x.startTime}:00`, 
-          end: `${x.date}T${x.endTime}:00`,
-          backgroundColor: x.facility.includes('教室') ? '#6366f1' : '#10b981', 
-          borderColor: 'transparent'
-      }));
+      const events = dbData.filter(x => x.status.includes('已核准')).map(x => {
+          const isClassroom = x.facility.includes('教室');
+          return {
+              title: x.facility, 
+              start: `${x.date}T${x.startTime}:00`, 
+              end: `${x.date}T${x.endTime}:00`,
+              backgroundColor: isClassroom ? '#e0e7ff' : '#d1fae5', 
+              borderColor: isClassroom ? '#c7d2fe' : '#a7f3d0', 
+              textColor: isClassroom ? '#3730a3' : '#065f46',
+              extendedProps: {
+                  unit: x.unit,
+                  contact: x.contact,
+                  description: `【詳細資訊】\n借用單位：${x.unit}\n聯絡人員：${x.contact}\n借用場地：${x.facility}\n借用時間：${x.startTime} - ${x.endTime}`
+              }
+          };
+      });
       calendar.removeAllEvents();
       calendar.addEventSource(events);
   }
 
+  // ★ 控制 Loading 動畫的函數
+  function showLoading(show) {
+      const overlays = document.querySelectorAll('.loading-overlay');
+      overlays.forEach(el => {
+          if (show) el.classList.add('active');
+          else el.classList.remove('active');
+      });
+  }
+
   // === 資料處理 ===
   async function fetchData() {
+    showLoading(true); // ★ 開始載入動畫
     try {
       const res = await fetch(GAS_ENDPOINT);
       dbData = await res.json();
       updateWeeklyNotice();
       renderList();
       renderTodo();
-      updateFullCalendar(); // ★ 取得資料後更新日曆
+      updateFullCalendar(); 
       showToast('同步完成', '資料已更新', 'success');
-    } catch (e) { console.error(e); showToast('同步失敗', '無法取得最新資料', 'error'); }
+    } catch (e) { 
+      console.error(e); showToast('同步失敗', '無法取得最新資料', 'error'); 
+    } finally {
+      setTimeout(() => showLoading(false), 500); // ★ 確保畫面渲染完畢後淡出動畫 (加0.5秒延遲讓過場更滑順)
+    }
   }
   $('#syncBtn').onclick = fetchData;
   fetchData();
@@ -582,7 +646,6 @@
       if (!x.status.includes('已核准')) return false;
       if (x.date > today) return false;
       const s = x.uploadStatus || "";
-      // ★ 新增判斷：如果已結案，就不算待辦事項
       if (isCaseClosed(s)) return false;
       return !(s.includes("使用前") && s.includes("使用中") && s.includes("歸還後"));
     });
@@ -640,7 +703,7 @@
         } else {
           const applyMode = document.querySelector('input[name="applyMode"]:checked').value;
           let dates =[];
-          if (applyMode === 'single') { if (!$('#date').value) throw new Error('請填寫單日日期'); dates = [$('#date').value]; } 
+          if (applyMode === 'single') { if (!$('#date').value) throw new Error('請填寫單日日期'); dates =[$('#date').value]; } 
           else { if (finalSelectedDates.length === 0) { alert('請至少選擇一個日期'); throw new Error('未選擇日期'); } dates = [...finalSelectedDates]; }
           await fetch(GAS_ENDPOINT, { method: 'POST', headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ ...base, dates: dates, action: 'create_batch' }) });
           showToast('申請成功', `已送出 ${dates.length} 筆紀錄，待審核。`, 'success'); resetForm(); setTimeout(fetchData, 1500);
@@ -727,7 +790,6 @@
         const color = f.status.includes("核准") ? "text-emerald-600 bg-emerald-50" : (f.status.includes("撞期") ? "text-rose-600 bg-rose-50" : "text-amber-600 bg-amber-50");
         let missingPhotoInfo = '';
 
-        // ★ 修改判斷邏輯：如果已結案，不顯示缺件提醒
         if(f.status.includes("核准") && f.date <= today && items.some(i => !isCaseClosed(i.uploadStatus) && (!(i.uploadStatus||"").includes("前") || !(i.uploadStatus||"").includes("中") || !(i.uploadStatus||"").includes("後")))) {
             missingPhotoInfo = `<div class="ml-2 flex items-center gap-2"><span class="text-xs text-rose-600 font-bold">● 缺件</span></div>`;
         }
