@@ -56,6 +56,135 @@
     .loading-overlay.active { opacity: 1; pointer-events: all; }
     .spinner { width: 32px; height: 32px; border: 3px solid #e2e8f0; border-top-color: #4f46e5; border-radius: 50%; animation: spin 1s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+    /* ================= 🔥 週課程輪播展示 (消防風格) ================= */
+    .sc-launch { position: relative; width: 100%; margin-top: 10px; padding: 12px 16px; border: none; border-radius: 12px; cursor: pointer; overflow: hidden;
+      background: linear-gradient(120deg, #7f1d1d 0%, #ea580c 45%, #f59e0b 100%); color: #fff; font-weight: 800; letter-spacing: .05em;
+      box-shadow: 0 8px 20px -6px rgba(234, 88, 12, .55); transition: transform .2s ease, box-shadow .2s ease; }
+    .sc-launch:hover { transform: translateY(-2px); box-shadow: 0 12px 26px -6px rgba(234, 88, 12, .75); }
+    .sc-launch:active { transform: translateY(0); }
+    .sc-launch::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 4px;
+      background: repeating-linear-gradient(45deg, #fde047 0 10px, #7f1d1d 10px 20px); opacity: .9; }
+    .sc-launch .sc-launch-sub { display: block; font-weight: 500; font-size: 11px; opacity: .9; letter-spacing: .02em; margin-top: 2px; }
+
+    #showcaseOverlay { position: fixed; inset: 0; z-index: 5000; display: none; flex-direction: column; overflow: hidden;
+      background: #08090c; color: #f1f5f9; font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+    #showcaseOverlay.sc-open { display: flex; }
+    #showcaseOverlay::before { content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+      background: radial-gradient(125% 85% at 50% 118%, rgba(255,106,19,.55) 0%, rgba(255,45,26,.20) 34%, rgba(8,9,12,0) 68%);
+      animation: sc-breathe 6s ease-in-out infinite; }
+    @keyframes sc-breathe { 0%, 100% { opacity: .7; } 50% { opacity: 1; } }
+
+    /* 底部火焰 */
+    .sc-flames { position: absolute; left: 0; right: 0; bottom: 0; height: 28vh; z-index: 1; pointer-events: none; filter: blur(22px); }
+    .sc-flames span { position: absolute; bottom: -8vh; width: 26vw; height: 30vh; border-radius: 50% 50% 40% 40%;
+      background: linear-gradient(to top, #ff2d1a 0%, #ff6a13 45%, rgba(255,183,3,0) 88%); animation: sc-flicker 3.4s ease-in-out infinite; }
+    .sc-flames span:nth-child(1) { left: 2%;  animation-delay: 0s;    opacity: .55; }
+    .sc-flames span:nth-child(2) { left: 24%; animation-delay: -.9s;  opacity: .45; }
+    .sc-flames span:nth-child(3) { left: 48%; animation-delay: -1.7s; opacity: .55; }
+    .sc-flames span:nth-child(4) { left: 70%; animation-delay: -2.4s; opacity: .42; }
+    .sc-flames span:nth-child(5) { left: 86%; animation-delay: -1.2s; opacity: .5; }
+    @keyframes sc-flicker {
+      0%, 100% { transform: translateY(0) scale(1, 1); }
+      25%      { transform: translateY(-2.5vh) scale(.92, 1.16); }
+      50%      { transform: translateY(-1vh) scale(1.08, .94); }
+      75%      { transform: translateY(-3.5vh) scale(.96, 1.10); } }
+
+    /* 頁首 */
+    .sc-header { position: relative; z-index: 3; flex: none; display: flex; align-items: center; gap: 1.6vw; padding: 1.8vh 2.2vw 1.2vh; }
+    .sc-brand { display: flex; align-items: center; gap: .7vw; font-weight: 900; letter-spacing: .06em; font-size: clamp(19px, 2vw, 40px); white-space: nowrap; }
+    .sc-brand .sc-fire { color: #ff6a13; filter: drop-shadow(0 0 14px rgba(255,106,19,.85)); animation: sc-pulse 1.7s ease-in-out infinite; }
+    @keyframes sc-pulse { 0%, 100% { transform: scale(1); opacity: .88; } 50% { transform: scale(1.14); opacity: 1; } }
+    .sc-siren { flex: none; width: 12px; height: 12px; border-radius: 50%; background: #ff2d1a; animation: sc-siren 1.5s infinite; }
+    @keyframes sc-siren { 0% { box-shadow: 0 0 0 0 rgba(255,45,26,.75); } 70% { box-shadow: 0 0 0 18px rgba(255,45,26,0); } 100% { box-shadow: 0 0 0 0 rgba(255,45,26,0); } }
+    .sc-range { font-size: clamp(13px, 1.15vw, 22px); color: #fbbf24; font-weight: 700; letter-spacing: .08em; white-space: nowrap; }
+    .sc-clock { margin-left: auto; display: flex; align-items: baseline; gap: .7vw; white-space: nowrap; }
+    .sc-clock-t { font-size: clamp(20px, 2.1vw, 42px); font-weight: 800; color: #fff; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+    .sc-clock-d { font-size: clamp(12px, 1.05vw, 20px); color: #94a3b8; }
+    .sc-hazard { position: relative; z-index: 3; flex: none; height: 9px;
+      background: repeating-linear-gradient(45deg, #f59e0b 0 18px, #16181d 18px 36px); box-shadow: 0 0 26px rgba(245,158,11,.35); }
+
+    /* 舞台 */
+    .sc-stage { position: relative; z-index: 3; flex: 1; min-height: 0; display: flex; padding: 2.2vh 2.2vw 1vh; }
+    .sc-slide { flex: 1; min-height: 0; display: flex; flex-direction: column; animation: sc-in .5s cubic-bezier(.2,.7,.2,1) both; }
+    @keyframes sc-in { from { opacity: 0; transform: translateY(26px) scale(.99); } to { opacity: 1; transform: none; } }
+
+    /* 單日課表 */
+    .sc-day-head { flex: none; display: flex; align-items: baseline; gap: 1.2vw; margin-bottom: 1.6vh; }
+    .sc-dow { font-size: clamp(26px, 3.2vw, 62px); font-weight: 900; color: #fbbf24; text-shadow: 0 0 26px rgba(251,191,36,.35); line-height: 1; }
+    .sc-date { font-size: clamp(15px, 1.45vw, 28px); color: #94a3b8; letter-spacing: .1em; }
+    .sc-today { font-size: clamp(12px, 1vw, 20px); font-weight: 800; color: #08090c; background: #fbbf24; padding: .3vh .8vw; border-radius: 999px; letter-spacing: .1em; }
+    .sc-count { margin-left: auto; font-size: clamp(12px, 1.1vw, 21px); font-weight: 700; color: #fb923c;
+      border: 1px solid rgba(251,146,60,.45); background: rgba(251,146,60,.10); padding: .5vh 1.1vw; border-radius: 999px; white-space: nowrap; }
+    .sc-cards { flex: 1; min-height: 0; display: grid; gap: 1.4vh 1.4vw; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: minmax(0, 1fr); }
+    .sc-cards.sc-one { grid-template-columns: minmax(0, 1fr); align-content: center; grid-auto-rows: minmax(0, 30vh); }
+    .sc-card { display: flex; align-items: stretch; gap: 1.3vw; padding: 1.8vh 1.5vw; border-radius: 16px; min-width: 0;
+      background: linear-gradient(125deg, rgba(32,36,44,.94), rgba(16,18,23,.94)); border: 1px solid rgba(255,255,255,.07); border-left: 7px solid #ff6a13;
+      box-shadow: 0 14px 34px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.05); }
+    .sc-card.sc-room { border-left-color: #fbbf24; }
+    .sc-card.sc-field { border-left-color: #ff2d1a; }
+    .sc-time { flex: none; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: .5vh; padding-right: 1.2vw; border-right: 1px dashed rgba(255,255,255,.14); }
+    .sc-t { font-size: clamp(17px, 1.7vw, 34px); font-weight: 800; font-variant-numeric: tabular-nums; color: #fff; line-height: 1; }
+    .sc-t.sc-t-end { color: #94a3b8; font-size: clamp(14px, 1.3vw, 26px); }
+    .sc-tbar { width: 100%; height: 2px; background: linear-gradient(90deg, #ff6a13, rgba(255,106,19,0)); }
+    .sc-body { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+    .sc-topic { font-size: clamp(19px, 1.85vw, 38px); font-weight: 800; line-height: 1.28; color: #fff;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .sc-meta { display: flex; flex-wrap: wrap; gap: .5vw .6vw; margin-top: 1vh; }
+    .sc-chip { display: inline-flex; align-items: center; gap: .35vw; font-size: clamp(12px, 1.05vw, 21px); color: #cbd5e1;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.10); padding: .35vh .8vw; border-radius: 999px; }
+    .sc-chip i { color: #fb923c; }
+
+    /* 一週總覽 */
+    .sc-week { flex: 1; min-height: 0; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .7vw; }
+    .sc-col { display: flex; flex-direction: column; min-height: 0; border-radius: 12px; overflow: hidden;
+      background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07); }
+    .sc-col.sc-col-today { border-color: rgba(251,191,36,.6); box-shadow: 0 0 0 2px rgba(251,191,36,.16); }
+    .sc-col-h { flex: none; padding: 1vh .5vw; text-align: center; border-bottom: 1px solid rgba(255,255,255,.08);
+      background: linear-gradient(180deg, rgba(255,106,19,.22), rgba(255,106,19,.04)); }
+    .sc-col.sc-col-today .sc-col-h { background: linear-gradient(180deg, rgba(251,191,36,.30), rgba(251,191,36,.06)); }
+    .sc-col-dow { font-size: clamp(13px, 1.15vw, 23px); font-weight: 800; color: #fff; }
+    .sc-col-date { font-size: clamp(10px, .85vw, 16px); color: #94a3b8; font-variant-numeric: tabular-nums; }
+    .sc-col-b { flex: 1; min-height: 0; padding: .7vh .5vw; display: flex; flex-direction: column; gap: .6vh; overflow: hidden; }
+    .sc-mini { border-radius: 8px; padding: .6vh .6vw; background: rgba(0,0,0,.38); border-left: 3px solid #ff6a13; min-width: 0; }
+    .sc-mini.sc-room { border-left-color: #fbbf24; }
+    .sc-mini.sc-field { border-left-color: #ff2d1a; }
+    .sc-mini-t { font-size: clamp(9px, .8vw, 15px); color: #fb923c; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .sc-mini-x { font-size: clamp(10px, .92vw, 17px); color: #f1f5f9; font-weight: 600; line-height: 1.3;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+    .sc-mini-f { font-size: clamp(9px, .78vw, 14px); color: #94a3b8; }
+    .sc-more { font-size: clamp(9px, .8vw, 15px); color: #fbbf24; font-weight: 700; text-align: center; }
+    .sc-rest { margin: auto; font-size: clamp(10px, .85vw, 16px); color: #475569; }
+
+    /* 空狀態 */
+    .sc-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2vh; text-align: center; }
+    .sc-empty i { font-size: clamp(48px, 6vw, 110px); color: #ff6a13; filter: drop-shadow(0 0 24px rgba(255,106,19,.6)); }
+    .sc-empty-t { font-size: clamp(20px, 2.2vw, 42px); font-weight: 800; }
+    .sc-empty-s { font-size: clamp(13px, 1.2vw, 22px); color: #94a3b8; }
+
+    /* 頁尾控制列 */
+    .sc-footer { position: relative; z-index: 3; flex: none; display: flex; align-items: center; gap: 1.2vw; padding: 1.2vh 2.2vw 2.2vh; }
+    .sc-dots { display: flex; flex-wrap: wrap; gap: .45vw; }
+    .sc-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.18); transition: all .3s ease; cursor: pointer; }
+    .sc-dot.sc-on { background: #ff6a13; box-shadow: 0 0 14px rgba(255,106,19,.9); transform: scale(1.3); }
+    .sc-ctrls { margin-left: auto; display: flex; align-items: center; gap: .6vw; }
+    .sc-btn { display: inline-flex; align-items: center; gap: .35vw; font-size: clamp(12px, 1vw, 19px); font-weight: 700; color: #e2e8f0; cursor: pointer;
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12); border-radius: 10px; padding: .7vh 1vw; transition: all .2s ease; white-space: nowrap; }
+    .sc-btn:hover { background: rgba(255,106,19,.20); border-color: rgba(255,106,19,.55); color: #fff; }
+    .sc-btn.sc-exit { background: rgba(255,45,26,.16); border-color: rgba(255,45,26,.5); color: #fca5a5; }
+    .sc-btn.sc-exit:hover { background: #ff2d1a; color: #fff; }
+    .sc-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 5px; background: rgba(255,255,255,.07); }
+    .sc-progress span { display: block; height: 100%; width: 0;
+      background: linear-gradient(90deg, #fbbf24, #ff6a13 55%, #ff2d1a); box-shadow: 0 0 18px rgba(255,106,19,.85); }
+
+    @media (max-width: 900px) {
+      .sc-cards { grid-template-columns: minmax(0, 1fr); }
+      .sc-week { grid-template-columns: repeat(2, minmax(0, 1fr)); overflow-y: auto; }
+      .sc-clock-t { font-size: 18px; }
+      .sc-brand { font-size: 16px; }
+      .sc-range { display: none; }
+      .sc-btn span { display: none; }
+    }
+
   </style>
 
   <script>
@@ -271,6 +400,11 @@
                 <span class="text-xs font-bold text-indigo-600 tracking-wider">系統資料同步中...</span>
             </div>
             <div id="calendar" class="h-full w-full flex-1"></div>
+            <!-- ★ 🔥 全螢幕輪播展示按鈕 -->
+            <button type="button" id="showcaseBtn" class="sc-launch">
+              <i class="ri-fire-fill"></i> 全螢幕播放一週課程看板
+              <span class="sc-launch-sub">學員展示模式｜自動輪播．Esc 離開</span>
+            </button>
           </div>
           
         </div>
@@ -367,6 +501,38 @@
     <div><h4 id="toastTitle" class="font-bold text-sm"></h4><p id="toastMsg" class="text-xs text-slate-300"></p></div>
   </div>
 
+
+  <!-- ★ 🔥 一週課程輪播展示層 (消防風格) -->
+  <div id="showcaseOverlay" aria-hidden="true">
+    <div class="sc-flames"><span></span><span></span><span></span><span></span><span></span></div>
+
+    <header class="sc-header">
+      <div class="sc-siren"></div>
+      <div class="sc-brand"><i class="ri-fire-fill sc-fire"></i> 訓練中心｜一週課程看板</div>
+      <div class="sc-range" id="scRange"></div>
+      <div class="sc-clock">
+        <span class="sc-clock-t" id="scClockTime">--:--:--</span>
+        <span class="sc-clock-d" id="scClockDate"></span>
+      </div>
+    </header>
+    <div class="sc-hazard"></div>
+
+    <div class="sc-stage" id="scStage"></div>
+
+    <footer class="sc-footer">
+      <div class="sc-dots" id="scDots"></div>
+      <div class="sc-ctrls">
+        <button class="sc-btn" id="scPrevWeek" title="上一週"><i class="ri-rewind-mini-fill"></i><span>上一週</span></button>
+        <button class="sc-btn" id="scPrev" title="上一頁 (←)"><i class="ri-arrow-left-s-line"></i></button>
+        <button class="sc-btn" id="scPlay" title="暫停/播放 (空白鍵)"><i class="ri-pause-fill" id="scPlayIcon"></i><span id="scPlayText">暫停</span></button>
+        <button class="sc-btn" id="scNext" title="下一頁 (→)"><i class="ri-arrow-right-s-line"></i></button>
+        <button class="sc-btn" id="scNextWeek" title="下一週"><i class="ri-speed-mini-fill"></i><span>下一週</span></button>
+        <button class="sc-btn sc-exit" id="scClose" title="離開 (Esc)"><i class="ri-close-line"></i><span>離開</span></button>
+      </div>
+      <div class="sc-progress"><span id="scBar"></span></div>
+    </footer>
+  </div>
+
 <script>
   // ==================== 全域設定 ====================
   const $ = (s) => document.querySelector(s);
@@ -419,10 +585,15 @@
 
             // ★ 自訂渲染：清單顯示詳細，格子顯示極簡
             eventContent: function(arg) {
+                const ep = arg.event.extendedProps || {};
+                const topic = String(ep.purpose || '').trim() || '訓練課程';
                 if (arg.view.type === 'listWeek') {
-                    return { html: `<div class="font-bold text-slate-700">${arg.event.extendedProps.unit} <span class="font-normal text-slate-500 ml-1">- ${arg.event.title}</span></div>` };
+                    return { html: `<div class="flex flex-col leading-tight">`
+                        + `<div class="font-bold text-slate-800 flex items-center gap-1"><i class="ri-fire-fill text-orange-500"></i>${topic}</div>`
+                        + `<div class="text-xs text-slate-500 mt-0.5">${ep.unit || ''} · ${arg.event.title}</div>`
+                        + `</div>` };
                 } else {
-                    return { html: `<div class="text-[11px] px-1 font-bold truncate">${arg.event.title}</div>` };
+                    return { html: `<div class="text-[11px] px-1 leading-tight truncate"><span class="font-bold">${arg.event.title}</span><span class="opacity-75"> ${topic}</span></div>` };
                 }
             },
 
@@ -585,7 +756,9 @@
               extendedProps: {
                   unit: x.unit,
                   contact: x.contact,
-                  description: `【詳細資訊】\n借用單位：${x.unit}\n聯絡人員：${x.contact}\n借用場地：${x.facility}\n借用時間：${x.startTime} - ${x.endTime}`
+                  purpose: x.purpose,
+                  facility: x.facility,
+                  description: `【詳細資訊】\n課程主題：${x.purpose || '未填寫'}\n借用單位：${x.unit}\n聯絡人員：${x.contact}\n借用場地：${x.facility}\n借用時間：${x.startTime} - ${x.endTime}`
               }
           };
       });
@@ -678,7 +851,7 @@
       const books = dbData.filter(x => x.date === ds && x.status.includes('已核准'));
       if (books.length) {
         has = true;
-        con.innerHTML += `<div class="text-xs border-b border-slate-100 pb-2 last:border-0"><div class="font-bold text-indigo-600 mb-1">${ds}</div>${books.map(b => `<div class="flex justify-between bg-slate-50 px-2 py-1 rounded text-slate-600"><span>${b.facility}</span><span>${b.startTime}-${b.endTime}</span></div>`).join('')}</div>`;
+        con.innerHTML += `<div class="text-xs border-b border-slate-100 pb-2 last:border-0"><div class="font-bold text-indigo-600 mb-1">${ds}</div>${books.map(b => `<div class="bg-slate-50 px-2 py-1 rounded text-slate-600 mb-1 last:mb-0"><div class="flex justify-between"><span class="font-bold text-slate-700">${b.facility}</span><span>${b.startTime}-${b.endTime}</span></div><div class="text-[11px] text-orange-600 truncate">🔥 ${String(b.purpose || '').trim() || '訓練課程'}</div></div>`).join('')}</div>`;
       }
     }
     if (!has) con.innerHTML = '<div class="text-sm text-slate-400 py-4 text-center">未來 7 天無核准預約</div>';
@@ -843,6 +1016,284 @@
     o.classList.remove('translate-y-20', 'opacity-0'); setTimeout(() => o.classList.add('translate-y-20', 'opacity-0'), 3000);
   }
   window.switchView = (v) => { document.querySelectorAll('[id^="view-"]').forEach(e => e.classList.add('hidden')); $('#view-'+v).classList.remove('hidden'); };
+
+  // ==================================================================
+  // ★ 🔥 一週課程輪播展示 (Showcase) — 給學員看的全螢幕看板
+  // ==================================================================
+  const SC_SLIDE_MS = 9000;      // 每頁停留時間
+  const SC_PER_PAGE = 4;         // 單日每頁最多顯示幾堂課
+  const SC_RESYNC_MS = 300000;   // 輪播中每 5 分鐘背景同步一次資料
+
+  let scSlides = [], scIndex = 0, scWeekOffset = 0;
+  let scRaf = null, scElapsed = 0, scLastTs = 0, scPaused = false;
+  let scClockTimer = null, scLastSync = 0, scUsedFullscreen = false;
+
+  const scWeekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+  const scEsc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const scKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const scIsRoom = (f) => /教室|會議|禮堂|講堂/.test(f || '');
+
+  // 取得要展示的一週 (以日曆目前檢視的週為準，月檢視或取不到時用本週)
+  function scGetWeek() {
+    let start = null;
+    try {
+      if (calendar && calendar.view && calendar.view.activeStart) {
+        const s = new Date(calendar.view.activeStart), e = new Date(calendar.view.activeEnd);
+        if ((e - s) / 86400000 <= 8) start = s;   // 只有週檢視才沿用
+      }
+    } catch (err) { /* 忽略，改用本週 */ }
+    if (!start || isNaN(start)) { start = new Date(); start.setDate(start.getDate() - start.getDay()); }
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() + scWeekOffset * 7);
+
+    const todayKey = scKey(new Date());
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start); d.setDate(start.getDate() + i);
+      days.push({ date: d, key: scKey(d), dow: scWeekdays[d.getDay()], label: `${d.getMonth() + 1}月${d.getDate()}日`, isToday: scKey(d) === todayKey });
+    }
+    return { start, days };
+  }
+
+  // 依資料建立輪播頁面：第 1 頁為一週總覽，其後每日課表 (無課程日不佔頁)
+  function scBuildSlides() {
+    const { days } = scGetWeek();
+    const byDate = {};
+    days.forEach(d => byDate[d.key] = []);
+    (dbData || []).forEach(x => {
+      if (!x || !x.status || !x.status.includes('已核准')) return;
+      if (byDate[x.date]) byDate[x.date].push(x);
+    });
+    Object.keys(byDate).forEach(k => byDate[k].sort((a, b) =>
+      String(a.startTime || '').localeCompare(String(b.startTime || '')) || String(a.facility || '').localeCompare(String(b.facility || ''))));
+
+    const total = days.reduce((n, d) => n + byDate[d.key].length, 0);
+    const slides = [{ type: 'week', days, byDate, total }];
+    days.forEach(d => {
+      const list = byDate[d.key];
+      const pages = Math.ceil(list.length / SC_PER_PAGE);
+      for (let i = 0; i < list.length; i += SC_PER_PAGE) {
+        slides.push({ type: 'day', day: d, items: list.slice(i, i + SC_PER_PAGE), total: list.length, page: i / SC_PER_PAGE + 1, pages });
+      }
+    });
+    if (total === 0) slides.push({ type: 'empty', days });
+
+    const first = days[0], last = days[6];
+    const rangeEl = document.getElementById('scRange');
+    if (rangeEl) rangeEl.textContent = `${first.date.getFullYear()}/${first.label} － ${last.label}　共 ${total} 堂`;
+    return slides;
+  }
+
+  function scCardHtml(x) {
+    const topic = String(x.purpose || '').trim() || '訓練課程';
+    return `<div class="sc-card ${scIsRoom(x.facility) ? 'sc-room' : 'sc-field'}">
+        <div class="sc-time">
+          <span class="sc-t">${scEsc(x.startTime || '')}</span>
+          <span class="sc-tbar"></span>
+          <span class="sc-t sc-t-end">${scEsc(x.endTime || '')}</span>
+        </div>
+        <div class="sc-body">
+          <div class="sc-topic">${scEsc(topic)}</div>
+          <div class="sc-meta">
+            <span class="sc-chip"><i class="ri-map-pin-2-fill"></i>${scEsc(x.facility || '')}</span>
+            <span class="sc-chip"><i class="ri-team-fill"></i>${scEsc(x.unit || '')}</span>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function scSlideHtml(s) {
+    if (s.type === 'week') {
+      const cols = s.days.map(d => {
+        const list = s.byDate[d.key];
+        const shown = list.slice(0, 4).map(x => `
+            <div class="sc-mini ${scIsRoom(x.facility) ? 'sc-room' : 'sc-field'}">
+              <div class="sc-mini-t">${scEsc(x.startTime || '')}-${scEsc(x.endTime || '')}</div>
+              <div class="sc-mini-x">${scEsc(String(x.purpose || '').trim() || '訓練課程')}</div>
+              <div class="sc-mini-f">${scEsc(x.facility || '')}</div>
+            </div>`).join('');
+        const more = list.length > 4 ? `<div class="sc-more">＋ 還有 ${list.length - 4} 堂</div>` : '';
+        const body = list.length ? shown + more : '<div class="sc-rest">無排課</div>';
+        return `<div class="sc-col ${d.isToday ? 'sc-col-today' : ''}">
+            <div class="sc-col-h"><div class="sc-col-dow">${d.dow.replace('星期', '週')}</div><div class="sc-col-date">${d.label}</div></div>
+            <div class="sc-col-b">${body}</div>
+          </div>`;
+      }).join('');
+      return `<div class="sc-slide">
+          <div class="sc-day-head">
+            <div class="sc-dow">本週課程總覽</div>
+            <div class="sc-date">WEEKLY TRAINING SCHEDULE</div>
+            <div class="sc-count"><i class="ri-fire-fill"></i> 共 ${s.total} 堂課</div>
+          </div>
+          <div class="sc-week">${cols}</div>
+        </div>`;
+    }
+
+    if (s.type === 'empty') {
+      return `<div class="sc-slide"><div class="sc-empty">
+          <i class="ri-fire-fill"></i>
+          <div class="sc-empty-t">本週尚無核准課程</div>
+          <div class="sc-empty-s">待命整備中 — STANDBY</div>
+        </div></div>`;
+    }
+
+    const d = s.day;
+    const pageTag = s.pages > 1 ? `（${s.page}/${s.pages}）` : '';
+    return `<div class="sc-slide">
+        <div class="sc-day-head">
+          <div class="sc-dow">${d.dow}</div>
+          <div class="sc-date">${d.date.getFullYear()}/${d.label}</div>
+          ${d.isToday ? '<div class="sc-today">今日</div>' : ''}
+          <div class="sc-count"><i class="ri-calendar-check-fill"></i> ${s.total} 堂課${pageTag}</div>
+        </div>
+        <div class="sc-cards ${s.items.length <= 2 ? 'sc-one' : ''}">${s.items.map(scCardHtml).join('')}</div>
+      </div>`;
+  }
+
+  function scRender() {
+    const stage = document.getElementById('scStage');
+    if (!stage || !scSlides.length) return;
+    if (scIndex >= scSlides.length) scIndex = 0;
+    if (scIndex < 0) scIndex = scSlides.length - 1;
+    stage.innerHTML = scSlideHtml(scSlides[scIndex]);
+
+    const dots = document.getElementById('scDots');
+    if (dots) {
+      dots.innerHTML = scSlides.map((_, i) => `<div class="sc-dot ${i === scIndex ? 'sc-on' : ''}" data-i="${i}"></div>`).join('');
+    }
+  }
+
+  function scGo(step) {
+    const next = scIndex + step;
+    scIndex = (next + scSlides.length) % scSlides.length;
+    scElapsed = 0;
+    scRender();
+    if (scIndex === 0) scMaybeResync();   // 每輪播完一圈，順便背景更新資料
+  }
+
+  function scJump(i) { scIndex = i; scElapsed = 0; scRender(); }
+
+  function scSetWeek(offset) {
+    scWeekOffset = offset;
+    scSlides = scBuildSlides();
+    scIndex = 0; scElapsed = 0;
+    scRender();
+  }
+
+  async function scMaybeResync() {
+    if (Date.now() - scLastSync < SC_RESYNC_MS) return;
+    scLastSync = Date.now();
+    try {
+      const res = await fetch(GAS_ENDPOINT);
+      const data = await res.json();
+      if (Array.isArray(data) && data.length) {
+        dbData = data;
+        updateFullCalendar();
+        const keep = scIndex;
+        scSlides = scBuildSlides();
+        scIndex = Math.min(keep, scSlides.length - 1);
+        scRender();
+      }
+    } catch (e) { console.warn('輪播背景同步失敗', e); }
+  }
+
+  function scLoop(ts) {
+    const ov = document.getElementById('showcaseOverlay');
+    if (!ov || !ov.classList.contains('sc-open')) { scRaf = null; return; }
+    if (!scLastTs) scLastTs = ts;
+    const dt = ts - scLastTs; scLastTs = ts;
+    if (!scPaused) scElapsed += dt;
+    const bar = document.getElementById('scBar');
+    const p = Math.min(1, scElapsed / SC_SLIDE_MS);
+    if (bar) bar.style.width = (p * 100) + '%';
+    if (p >= 1) scGo(1);
+    scRaf = requestAnimationFrame(scLoop);
+  }
+
+  function scTogglePlay(force) {
+    scPaused = (typeof force === 'boolean') ? force : !scPaused;
+    const icon = document.getElementById('scPlayIcon'), text = document.getElementById('scPlayText');
+    if (icon) icon.className = scPaused ? 'ri-play-fill' : 'ri-pause-fill';
+    if (text) text.textContent = scPaused ? '播放' : '暫停';
+  }
+
+  function scTickClock() {
+    const now = new Date();
+    const t = document.getElementById('scClockTime'), d = document.getElementById('scClockDate');
+    if (t) t.textContent = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+    if (d) d.textContent = `${now.getFullYear()}/${now.getMonth() + 1}/${now.getDate()} ${scWeekdays[now.getDay()]}`;
+  }
+
+  function scOnKey(e) {
+    if (e.key === 'ArrowRight') { e.preventDefault(); scGo(1); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); scGo(-1); }
+    else if (e.key === ' ') { e.preventDefault(); scTogglePlay(); }
+    else if (e.key === 'Escape') { scCloseShowcase(); }
+  }
+
+  function scOpenShowcase() {
+    const ov = document.getElementById('showcaseOverlay');
+    if (!ov) return;
+    scWeekOffset = 0; scIndex = 0; scElapsed = 0; scLastTs = 0; scLastSync = Date.now();
+    scSlides = scBuildSlides();
+    scTogglePlay(false);
+    ov.classList.add('sc-open');
+    ov.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+    scRender();
+    scTickClock();
+    if (scClockTimer) clearInterval(scClockTimer);
+    scClockTimer = setInterval(scTickClock, 1000);
+    document.addEventListener('keydown', scOnKey);
+    // 要求全螢幕 (不等待結果：部分環境不會回應 Promise，避免卡住輪播)
+    scUsedFullscreen = false;
+    try {
+      if (ov.requestFullscreen) {
+        const req = ov.requestFullscreen();
+        if (req && typeof req.then === 'function') req.then(() => { scUsedFullscreen = true; }).catch(() => { /* 被擋下時仍以滿版顯示 */ });
+        else scUsedFullscreen = true;
+      } else if (ov.webkitRequestFullscreen) { ov.webkitRequestFullscreen(); scUsedFullscreen = true; }
+    } catch (err) { /* 瀏覽器擋下全螢幕時，仍以滿版顯示 */ }
+    if (!scRaf) { scLastTs = 0; scRaf = requestAnimationFrame(scLoop); }
+    // 資料還沒回來就被點開時，立即補抓一次，避免看板空白
+    if (!Array.isArray(dbData) || !dbData.length) { scLastSync = 0; scMaybeResync(); }
+  }
+
+  function scCloseShowcase() {
+    const ov = document.getElementById('showcaseOverlay');
+    if (!ov || !ov.classList.contains('sc-open')) return;
+    ov.classList.remove('sc-open');
+    ov.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+    document.removeEventListener('keydown', scOnKey);
+    if (scRaf) { cancelAnimationFrame(scRaf); scRaf = null; }
+    if (scClockTimer) { clearInterval(scClockTimer); scClockTimer = null; }
+    scLastTs = 0; scElapsed = 0;
+    try { if (document.fullscreenElement) document.exitFullscreen(); } catch (err) { /* ignore */ }
+  }
+
+  document.addEventListener('fullscreenchange', () => {
+    const ov = document.getElementById('showcaseOverlay');
+    if (!ov) return;
+    // 使用者按 Esc 退出全螢幕時，一併關閉展示層
+    if (scUsedFullscreen && !document.fullscreenElement && ov.classList.contains('sc-open')) scCloseShowcase();
+  });
+
+  (function scBindControls() {
+    const on = (id, fn) => { const el = document.getElementById(id); if (el) el.onclick = fn; };
+    on('showcaseBtn', scOpenShowcase);
+    on('scClose', scCloseShowcase);
+    on('scPrev', () => scGo(-1));
+    on('scNext', () => scGo(1));
+    on('scPlay', () => scTogglePlay());
+    on('scPrevWeek', () => scSetWeek(scWeekOffset - 1));
+    on('scNextWeek', () => scSetWeek(scWeekOffset + 1));
+    const dots = document.getElementById('scDots');
+    if (dots) dots.addEventListener('click', e => {
+      const dot = e.target.closest('.sc-dot');
+      if (dot) scJump(parseInt(dot.dataset.i, 10));
+    });
+  })();
 </script>
 </body>
 </html>
