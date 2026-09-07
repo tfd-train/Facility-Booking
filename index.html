@@ -161,6 +161,14 @@
     .sc-now-bar-row span:last-child { color: #64748b; }
     .sc-now-bar { margin-top: 1vh; height: 10px; background: rgba(255,255,255,.08); border-radius: 6px; overflow: hidden; }
     .sc-now-bar span { display: block; height: 100%; background: linear-gradient(90deg, #ffb300, #ff6a13 60%, #ff2d1a); box-shadow: 0 0 22px rgba(255,106,19,.9); }
+    /* 多堂課同時進行：主角區改成堆疊，沒有後續課程時佔滿整個寬度 */
+    .sc-now.sc-now-solo { grid-template-columns: minmax(0, 1fr); }
+    .sc-now-stack { min-height: 0; display: grid; gap: 1.6vh; grid-auto-rows: minmax(0, 1fr); }
+    .sc-now-stack.sc-multi .sc-now-main { padding: 2vh 2.4vw; gap: 1.2vh; }
+    .sc-now-stack.sc-multi .sc-now-topic { font-size: clamp(26px, 3.2vw, 62px); }
+    .sc-now-stack.sc-multi .sc-now-room { font-size: clamp(18px, 2vw, 38px); }
+    .sc-now-stack.sc-multi .sc-now-bar { margin-top: .6vh; height: 8px; }
+
     .sc-next { min-height: 0; display: flex; flex-direction: column; gap: 1.4vh; }
     .sc-next-h { font-family: 'JetBrains Mono', monospace; font-size: clamp(13px, 1.15vw, 22px); font-weight: 700; letter-spacing: .2em; color: #7a8da6;
       border-bottom: 1px solid rgba(255,255,255,.12); padding-bottom: 1vh; }
@@ -1174,29 +1182,46 @@
     return h > 0 ? `${h} 時 ${String(m).padStart(2, '0')} 分` : `${m} 分`;
   }
 
-  // 建立今日開場頁：優先顯示現正進行的課，否則顯示今日下一堂；今日已無課或尚未開課則不建立此頁
+  // 建立今日開場頁：所有「現正進行」的課都算主角 (常態是多間教室同時段開課)，
+  // 只有真正還沒開始的課才會被歸到「今日接下來」；今日已無課則不建立此頁
   function scBuildOpeningSlide(day, items) {
     if (!items || !items.length) return null;
-    let idx = items.findIndex(x => scNowInfo(day.key, x));
-    let mode = 'now';
-    if (idx === -1) {
-      const now = new Date();
-      idx = items.findIndex(x => scParseTimeOnDay(day.key, x.startTime) > now);
-      mode = 'next';
-    }
-    if (idx === -1) return null;
-    const main = items[idx];
-    return { type: 'opening', day, mode, main, rest: items.slice(idx + 1), info: mode === 'now' ? scNowInfo(day.key, main) : null, total: items.length };
+    const now = new Date();
+    const nowItems = items.filter(x => scNowInfo(day.key, x));
+    const nextItems = items.filter(x => scParseTimeOnDay(day.key, x.startTime) > now);
+    if (!nowItems.length && !nextItems.length) return null;   // 今日課程都結束了
+    return { type: 'opening', day, mode: nowItems.length ? 'now' : 'next', nowItems, nextItems, total: items.length };
+  }
+
+  // 單張主角卡 (現正進行 / 即將開始)
+  function scHeroHtml(dayKey, x, isNow) {
+    const topic = String(x.purpose || '').trim() || '訓練課程';
+    const info = isNow ? scNowInfo(dayKey, x) : null;
+    const badge = isNow
+      ? `<span class="sc-now-badge"><span class="sc-live-dot"></span>現正進行 · NOW</span>`
+        + (info ? `<span class="sc-now-sub">已進行 ${scFmtMin(info.elapsedMin)} · 剩餘 ${scFmtMin(info.remainMin)}</span>` : '')
+      : `<span class="sc-now-badge" style="background:#ffb300">即將開始 · NEXT</span>`;
+    return `<div class="sc-now-main">
+        <div class="sc-now-scan"><span></span></div>
+        <div class="sc-now-head">${badge}</div>
+        <div class="sc-now-topic">${scEsc(topic)}</div>
+        <div class="sc-now-meta">
+          <span class="sc-now-room">${scEsc(x.facility || '')}</span>
+          <span class="sc-now-place">${scEsc(x.unit || '')}</span>
+        </div>
+        <div>
+          <div class="sc-now-bar-row"><span>${scEsc(x.startTime || '')}</span><span>${scEsc(x.endTime || '')}</span></div>
+          <div class="sc-now-bar"><span style="width:${info ? info.pct : 0}%"></span></div>
+        </div>
+      </div>`;
   }
 
   function scOpeningSlideHtml(s) {
-    const { day, mode, main, rest, info } = s;
-    const topic = String(main.purpose || '').trim() || '訓練課程';
-    const badge = mode === 'now'
-      ? `<span class="sc-now-badge"><span class="sc-live-dot"></span>現正進行 · NOW</span>
-         <span class="sc-now-sub">已進行 ${scFmtMin(info.elapsedMin)} · 剩餘 ${scFmtMin(info.remainMin)}</span>`
-      : `<span class="sc-now-badge" style="background:#ffb300">即將開始 · NEXT</span>`;
-    const barPct = mode === 'now' ? info.pct : 0;
+    const { day, mode, nowItems, nextItems } = s;
+    const isNow = mode === 'now';
+    const heroes = (isNow ? nowItems : nextItems.slice(0, 1)).slice(0, 3);
+    const rest = isNow ? nextItems : nextItems.slice(1);
+    const heroExtra = (isNow ? nowItems.length : 1) - heroes.length;
     const shown = rest.slice(0, 4);
     const restHtml = shown.length
       ? shown.map(x => `
@@ -1205,32 +1230,27 @@
             <div class="sc-next-x">${scEsc(String(x.purpose || '').trim() || '訓練課程')}</div>
             <div class="sc-next-meta"><span class="sc-next-room">${scEsc(x.facility || '')}</span><span class="sc-next-unit">${scEsc(x.unit || '')}</span></div>
           </div>`).join('') + (rest.length > 4 ? `<div class="sc-more">＋ 還有 ${rest.length - 4} 堂</div>` : '')
-      : `<div class="sc-next-empty">今日課程已結束</div>`;
+      : `<div class="sc-next-empty">今日已無後續課程</div>`;
+    const nowCount = isNow ? `　<span style="color:#ff9a3c">${nowItems.length} 堂進行中</span>` : '';
+    const heroesHtml = heroes.map(x => scHeroHtml(day.key, x, isNow)).join('')
+      + (heroExtra > 0 ? `<div class="sc-next-empty">＋ 另有 ${heroExtra} 堂同時進行</div>` : '');
+    // 沒有後續課程時，主角區佔滿整個畫面寬度
+    const nextCol = rest.length
+      ? `<div class="sc-next">
+            <div class="sc-next-h">今日接下來 // UP NEXT</div>
+            <div class="sc-next-list">${restHtml}</div>
+          </div>`
+      : '';
     return `<div class="sc-slide">
         <div class="sc-day-head">
           <div class="sc-dow">${day.dow}</div>
           <div class="sc-date">${day.date.getFullYear()}/${day.label}</div>
           <div class="sc-today">今日</div>
-          <div class="sc-count"><i class="ri-fire-fill"></i> 今日共 ${s.total} 堂</div>
+          <div class="sc-count"><i class="ri-fire-fill"></i> 今日共 ${s.total} 堂${nowCount}</div>
         </div>
-        <div class="sc-now">
-          <div class="sc-now-main">
-            <div class="sc-now-scan"><span></span></div>
-            <div class="sc-now-head">${badge}</div>
-            <div class="sc-now-topic">${scEsc(topic)}</div>
-            <div class="sc-now-meta">
-              <span class="sc-now-room">${scEsc(main.facility || '')}</span>
-              <span class="sc-now-place">${scEsc(main.unit || '')}</span>
-            </div>
-            <div>
-              <div class="sc-now-bar-row"><span>${scEsc(main.startTime || '')}</span><span>${scEsc(main.endTime || '')}</span></div>
-              <div class="sc-now-bar"><span style="width:${barPct}%"></span></div>
-            </div>
-          </div>
-          <div class="sc-next">
-            <div class="sc-next-h">今日接下來 // UP NEXT</div>
-            <div class="sc-next-list">${restHtml}</div>
-          </div>
+        <div class="sc-now ${nextCol ? '' : 'sc-now-solo'}">
+          <div class="sc-now-stack ${heroes.length > 1 ? 'sc-multi' : ''}">${heroesHtml}</div>
+          ${nextCol}
         </div>
       </div>`;
   }
