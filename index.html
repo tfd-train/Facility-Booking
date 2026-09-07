@@ -1065,28 +1065,25 @@
   const SC_SLIDE_MS = 9000;      // 每頁停留時間
   const SC_PER_PAGE = 4;         // 單日每頁最多顯示幾堂課
   const SC_RESYNC_MS = 300000;   // 輪播中每 5 分鐘背景同步一次資料
+  const SC_ROLL_MS = 30000;      // 每 30 秒檢查一次是否已經跨日
+  const SC_PIN_MS = 300000;      // 手動切到其他週後，閒置 5 分鐘自動回到本週
 
   let scSlides = [], scIndex = 0, scWeekOffset = 0;
   let scRaf = null, scElapsed = 0, scLastTs = 0, scPaused = false;
   let scClockTimer = null, scLastSync = 0, scUsedFullscreen = false;
+  let scPinnedAt = 0, scRollTimer = null, scDayStamp = '';
 
   const scWeekdays = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
   const scEsc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const scKey = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   const scIsRoom = (f) => /教室|會議|禮堂|講堂/.test(f || '');
 
-  // 取得要展示的一週 (以日曆目前檢視的週為準，月檢視或取不到時用本週)
+  // ★ 一律以「今天所在的那一週」為基準，再套用手動偏移 (scWeekOffset)
+  // 這樣看板掛整晚或整個週末，跨日後重算就會自動回到當週，不必手動重整
   function scGetWeek() {
-    let start = null;
-    try {
-      if (calendar && calendar.view && calendar.view.activeStart) {
-        const s = new Date(calendar.view.activeStart), e = new Date(calendar.view.activeEnd);
-        if ((e - s) / 86400000 <= 8) start = s;   // 只有週檢視才沿用
-      }
-    } catch (err) { /* 忽略，改用本週 */ }
-    if (!start || isNaN(start)) { start = new Date(); start.setDate(start.getDate() - start.getDay()); }
+    const start = new Date();
     start.setHours(0, 0, 0, 0);
-    start.setDate(start.getDate() + scWeekOffset * 7);
+    start.setDate(start.getDate() - start.getDay() + scWeekOffset * 7);
 
     const todayKey = scKey(new Date());
     const days = [];
@@ -1095,6 +1092,22 @@
       days.push({ date: d, key: scKey(d), dow: scWeekdays[d.getDay()], label: `${d.getMonth() + 1}月${d.getDate()}日`, isToday: scKey(d) === todayKey });
     }
     return { start, days };
+  }
+
+  // 開啟看板時：若日曆被翻到別週，換算成偏移量沿用那一週；停在本週或月檢視則回傳 0
+  function scOffsetFromCalendar() {
+    try {
+      if (calendar && calendar.view && calendar.view.activeStart) {
+        const s = new Date(calendar.view.activeStart), e = new Date(calendar.view.activeEnd);
+        if ((e - s) / 86400000 <= 8) {
+          s.setHours(0, 0, 0, 0);
+          const base = new Date(); base.setHours(0, 0, 0, 0);
+          base.setDate(base.getDate() - base.getDay());
+          return Math.round((s - base) / (7 * 86400000));
+        }
+      }
+    } catch (err) { /* 取不到就用本週 */ }
+    return 0;
   }
 
   // 依資料建立輪播頁面：今日有課才加開場頁，接著一週總覽，其後每日課表 (無課程日不佔頁)
@@ -1128,7 +1141,8 @@
 
     const first = days[0], last = days[6];
     const rangeEl = document.getElementById('scRange');
-    if (rangeEl) rangeEl.textContent = `${first.date.getFullYear()}/${first.label} － ${last.label}　共 ${total} 堂`;
+    const weekTag = scWeekOffset === 0 ? '' : (scWeekOffset < 0 ? `　◀ 前 ${-scWeekOffset} 週` : `　▶ 後 ${scWeekOffset} 週`);
+    if (rangeEl) rangeEl.textContent = `${first.date.getFullYear()}/${first.label} － ${last.label}　共 ${total} 堂${weekTag}`;
     return slides;
   }
 
@@ -1316,6 +1330,7 @@
 
   function scSetWeek(offset) {
     scWeekOffset = offset;
+    scPinnedAt = offset === 0 ? 0 : Date.now();
     scSlides = scBuildSlides();
     scIndex = 0; scElapsed = 0;
     scRender();
@@ -1336,6 +1351,30 @@
         scRender();
       }
     } catch (e) { console.warn('輪播背景同步失敗', e); }
+  }
+
+  // ★ 跨日/跨週自動歸位：看板整晚不關，隔天早上也會自己跳到當天當週
+  function scRolloverCheck() {
+    const ov = document.getElementById('showcaseOverlay');
+    const isOpen = !!(ov && ov.classList.contains('sc-open'));
+
+    // 手動切到其他週後閒置太久 → 自動回本週
+    if (isOpen && scWeekOffset !== 0 && scPinnedAt && (Date.now() - scPinnedAt > SC_PIN_MS)) scSetWeek(0);
+
+    const todayKey = scKey(new Date());
+    if (todayKey === scDayStamp) return;   // 還在同一天，不用動
+    scDayStamp = todayKey;
+
+    // 已跨日：週次回到本週、主畫面日曆跳回今天、重新抓資料後重建輪播
+    scWeekOffset = 0; scPinnedAt = 0;
+    try { if (calendar) calendar.today(); } catch (err) { /* 忽略 */ }
+    Promise.resolve(fetchData()).catch(() => {}).then(() => {
+      scLastSync = Date.now();
+      scSlides = scBuildSlides();
+      scIndex = 0; scElapsed = 0;
+      const el = document.getElementById('showcaseOverlay');
+      if (el && el.classList.contains('sc-open')) scRender();
+    });
   }
 
   function scLoop(ts) {
@@ -1375,7 +1414,10 @@
   function scOpenShowcase() {
     const ov = document.getElementById('showcaseOverlay');
     if (!ov) return;
-    scWeekOffset = 0; scIndex = 0; scElapsed = 0; scLastTs = 0; scLastSync = Date.now();
+    scWeekOffset = scOffsetFromCalendar();
+    scPinnedAt = scWeekOffset === 0 ? 0 : Date.now();
+    scDayStamp = scKey(new Date());
+    scIndex = 0; scElapsed = 0; scLastTs = 0; scLastSync = 0;
     scSlides = scBuildSlides();
     scTogglePlay(false);
     ov.classList.add('sc-open');
@@ -1396,8 +1438,8 @@
       } else if (ov.webkitRequestFullscreen) { ov.webkitRequestFullscreen(); scUsedFullscreen = true; }
     } catch (err) { /* 瀏覽器擋下全螢幕時，仍以滿版顯示 */ }
     if (!scRaf) { scLastTs = 0; scRaf = requestAnimationFrame(scLoop); }
-    // 資料還沒回來就被點開時，立即補抓一次，避免看板空白
-    if (!Array.isArray(dbData) || !dbData.length) { scLastSync = 0; scMaybeResync(); }
+    // 每次開啟都先同步一次，避免頁面開很久後拿到過期 (或還沒載完) 的資料
+    scMaybeResync();
   }
 
   function scCloseShowcase() {
@@ -1434,6 +1476,12 @@
       const dot = e.target.closest('.sc-dot');
       if (dot) scJump(parseInt(dot.dataset.i, 10));
     });
+
+    // ★ 跨日守門員：定時 + 分頁重新顯示 + 視窗取得焦點時各檢查一次
+    scDayStamp = scKey(new Date());
+    if (!scRollTimer) scRollTimer = setInterval(scRolloverCheck, SC_ROLL_MS);
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) scRolloverCheck(); });
+    window.addEventListener('focus', scRolloverCheck);
   })();
 </script>
 </body>
