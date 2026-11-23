@@ -974,7 +974,7 @@
       const originalBtnText = btn.innerHTML; btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 處理中...'; btn.disabled = true;
       try {
         const isEdit = $('#editId').value !== "";
-        const base = { unit: $('#unit').value, contact: $('#contact').value, phone: $('#phone').value, email: $('#email').value, facility: facVal, purpose: $('#purpose').value, startTime: sTime, endTime: eTime, id: isEdit ? $('#editId').value : generateUUID(), instructors: inst.names, instructorPhones: inst.phones };
+        const base = { unit: $('#unit').value, contact: $('#contact').value, phone: asSheetText($('#phone').value.trim()), email: $('#email').value, facility: facVal, purpose: $('#purpose').value, startTime: sTime, endTime: eTime, id: isEdit ? $('#editId').value : generateUUID(), instructors: inst.names, instructorPhones: asSheetText(inst.phones) };
         if (isEdit) {
           await fetch(GAS_ENDPOINT, { method: 'POST', headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ ...base, date: $('#date').value, action: 'edit' }) });
           showToast('更新成功', '已儲存變更', 'success'); resetForm(); setTimeout(fetchData, 1500);
@@ -1024,7 +1024,8 @@
     const r = dbData.find(x => x.id === id); if(!r) return;
     $('#editId').value = r.id; $('#unit').value = r.unit; $('#contact').value = r.contact; $('#phone').value = r.phone; $('#email').value = r.email; $('#facility').value = r.facility; $('#purpose').value = r.purpose;
     $('#date').value = r.date; $('#startTime').value = r.startTime; $('#endTime').value = r.endTime;
-    setInstructorRows(splitList(r.instructors), splitList(r.instructorPhones));
+    $('#phone').value = fixPhone(r.phone);
+    setInstructorRows(splitList(r.instructors), splitList(r.instructorPhones).map(fixPhone));
     $('#modeSingle').checked = true; updateApplyMode();
     $('#formTitle').textContent = "編輯預約申請"; $('#submitBtn').innerHTML = "<i class='ri-save-line'></i> 儲存變更"; $('#submitBtn').classList.add('bg-emerald-600'); $('#cancelEditBtn').classList.remove('hidden'); switchView('form');
   };
@@ -1069,8 +1070,19 @@
     return { names: names.join(INST_SEP), phones: phones.join(INST_SEP) };
   }
   function instEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  // 試算表會把 0912345678 當數字存而吃掉開頭 0：送出時加 ' 強制存成文字；顯示時補回手機號碼的 0
+  function asSheetText(v) { const s = String(v || ''); return /^[0+]/.test(s) ? "'" + s : s; }
+  function fixPhone(v) { const s = String(v == null ? '' : v).trim(); return /^9\d{8}$/.test(s) ? '0' + s : s; }
+  function instructorPairs(x) {
+    const ns = splitList(x.instructors), ps = splitList(x.instructorPhones).map(fixPhone);
+    return ns.map((n, i) => ({ name: n, phone: ps[i] || '' }));
+  }
+  function telLink(p) {
+    const s = fixPhone(p);
+    return `<a href="tel:${instEsc(s.replace(/[^\d+#]/g, ''))}" class="inline-flex whitespace-nowrap items-center gap-0.5 text-blue-600 hover:underline font-mono"><i class="ri-phone-line"></i>${instEsc(s)}</a>`;
+  }
   function instructorText(x) {
-    const ns = splitList(x.instructors), ps = splitList(x.instructorPhones);
+    const ns = splitList(x.instructors), ps = splitList(x.instructorPhones).map(fixPhone);
     return ns.map((n, i) => ps[i] ? `${n}（${ps[i]}）` : n).join('、');
   }
   setInstructorRows([], []);
@@ -1201,12 +1213,18 @@
         <div class="flex-1 min-w-0 space-y-0.5">
           <div class="font-bold text-slate-800 flex flex-wrap items-center gap-x-2">
             <span>${instEsc(i.facility)}</span><span class="text-slate-300">·</span><span>${instEsc(i.unit)}</span>
-            <span class="text-xs font-normal text-slate-500">(${instEsc(i.contact)})</span>
             ${missing ? '<span class="text-[11px] text-rose-600 font-bold">● 照片缺件</span>' : ''}
             ${isClosed ? '<span class="text-[11px] text-emerald-600 font-bold border border-emerald-200 bg-emerald-50 px-1 rounded">已結案</span>' : ''}
           </div>
           ${String(i.purpose || '').trim() ? `<div class="text-xs text-orange-600 truncate">🔥 ${instEsc(String(i.purpose).trim())}</div>` : ''}
-          ${inst ? `<div class="text-xs text-slate-600"><i class="ri-user-star-line text-indigo-500"></i> 授課教官：${instEsc(inst)}</div>` : ''}
+          <div class="text-xs text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1 pt-0.5">
+            <span class="inline-flex items-center gap-1"><i class="ri-contacts-line text-slate-400"></i>聯絡人：<b class="text-slate-700">${instEsc(i.contact || '—')}</b></span>
+            ${i.phone ? telLink(i.phone) : ''}
+          </div>
+          <div class="text-xs text-slate-600 flex flex-wrap items-center gap-x-2 gap-y-1">
+            <span class="inline-flex items-center gap-1"><i class="ri-user-star-line text-indigo-500"></i>授課教官：</span>
+            ${inst ? instructorPairs(i).map(p => `<span class="inline-flex whitespace-nowrap items-center gap-1 bg-indigo-50 border border-indigo-100 rounded px-1.5 py-0.5"><b class="text-indigo-700">${instEsc(p.name)}</b>${p.phone ? telLink(p.phone) : ''}</span>`).join('') : '<span class="text-slate-400">未填寫</span>'}
+          </div>
           <div class="flex flex-wrap items-center gap-2 pt-1">
             ${nBatch > 1 ? `<span class="text-[11px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">同批共 ${nBatch} 天</span>` : ''}
             ${i.folderUrl ? `<a href="${instEsc(i.folderUrl)}" target="_blank" class="text-[11px] text-blue-500 hover:underline"><i class="ri-folder-open-line"></i> 照片資料夾</a>` : ''}
