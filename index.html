@@ -372,6 +372,16 @@
                         </div>
                     </div>
                     <hr class="border-slate-100">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                          <span class="text-xs text-slate-500 font-bold"><i class="ri-user-star-line text-indigo-500"></i> 授課教官（可新增多位）</span>
+                          <button type="button" onclick="addInstructorRow()" class="text-xs text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-lg hover:bg-indigo-100 transition flex items-center gap-1 font-bold">
+                            <i class="ri-add-line"></i> 新增教官
+                          </button>
+                        </div>
+                        <div id="instructorList" class="space-y-3"></div>
+                    </div>
+                    <hr class="border-slate-100">
                     <div class="space-y-4">
                         <select id="facility" class="input-field" required>
                           <option value="" disabled selected>請選擇場地...</option>
@@ -842,7 +852,7 @@
                   contact: x.contact,
                   purpose: x.purpose,
                   facility: x.facility,
-                  description: `【詳細資訊】\n課程主題：${x.purpose || '未填寫'}\n借用單位：${x.unit}\n聯絡人員：${x.contact}\n借用場地：${x.facility}\n借用時間：${x.startTime} - ${x.endTime}`
+                  description: `【詳細資訊】\n課程主題：${x.purpose || '未填寫'}\n借用單位：${x.unit}\n聯絡人員：${x.contact}${instructorText(x) ? `\n授課教官：${instructorText(x)}` : ''}\n借用場地：${x.facility}\n借用時間：${x.startTime} - ${x.endTime}`
               }
           };
       });
@@ -949,11 +959,12 @@
       if (sTime && eTime && eTime <= sTime) { alert('時間錯誤：結束時間需晚於開始時間'); return; }
       let facVal = $('#facility').value; if (facVal === 'other') facVal = $('#customFacility').value.trim();
       if (!facVal) { alert('請選擇或輸入場地'); return; }
+      const inst = collectInstructors(); if (inst.error) { alert(inst.error); return; }
       const btn = $('#submitBtn'); if (btn.disabled) return;
       const originalBtnText = btn.innerHTML; btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 處理中...'; btn.disabled = true;
       try {
         const isEdit = $('#editId').value !== "";
-        const base = { unit: $('#unit').value, contact: $('#contact').value, phone: $('#phone').value, email: $('#email').value, facility: facVal, purpose: $('#purpose').value, startTime: sTime, endTime: eTime, id: isEdit ? $('#editId').value : generateUUID() };
+        const base = { unit: $('#unit').value, contact: $('#contact').value, phone: $('#phone').value, email: $('#email').value, facility: facVal, purpose: $('#purpose').value, startTime: sTime, endTime: eTime, id: isEdit ? $('#editId').value : generateUUID(), instructors: inst.names, instructorPhones: inst.phones };
         if (isEdit) {
           await fetch(GAS_ENDPOINT, { method: 'POST', headers: { "Content-Type": "text/plain" }, body: JSON.stringify({ ...base, date: $('#date').value, action: 'edit' }) });
           showToast('更新成功', '已儲存變更', 'success'); resetForm(); setTimeout(fetchData, 1500);
@@ -1003,13 +1014,59 @@
     const r = dbData.find(x => x.id === id); if(!r) return;
     $('#editId').value = r.id; $('#unit').value = r.unit; $('#contact').value = r.contact; $('#phone').value = r.phone; $('#email').value = r.email; $('#facility').value = r.facility; $('#purpose').value = r.purpose;
     $('#date').value = r.date; $('#startTime').value = r.startTime; $('#endTime').value = r.endTime;
+    setInstructorRows(splitList(r.instructors), splitList(r.instructorPhones));
     $('#modeSingle').checked = true; updateApplyMode();
     $('#formTitle').textContent = "編輯預約申請"; $('#submitBtn').innerHTML = "<i class='ri-save-line'></i> 儲存變更"; $('#submitBtn').classList.add('bg-emerald-600'); $('#cancelEditBtn').classList.remove('hidden'); switchView('form');
   };
   $('#cancelEditBtn').onclick = resetForm;
+
+  // ===== 授課教官（多筆）=====
+  // 試算表 P 欄存姓名、Q 欄存電話，多位以「、」分隔，順序一一對應
+  const INST_SEP = '、';
+  function splitList(s) { return String(s || '').split(/[、,，;；\n]/).map(t => t.trim()).filter(Boolean); }
+  window.addInstructorRow = (name = '', phone = '') => {
+    const list = $('#instructorList'); if (!list) return;
+    const row = document.createElement('div');
+    row.className = 'instructor-row grid grid-cols-[1fr_1fr_auto] gap-2 items-center';
+    row.innerHTML = `
+      <input type="text" class="input-field inst-name" placeholder="授課教官 *">
+      <input type="tel" class="input-field inst-phone" placeholder="教官聯絡電話 *">
+      <button type="button" class="inst-del w-10 h-10 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition" title="移除此教官"><i class="ri-delete-bin-line"></i></button>`;
+    row.querySelector('.inst-name').value = name;
+    row.querySelector('.inst-phone').value = phone;
+    row.querySelector('.inst-del').onclick = () => { row.remove(); refreshInstructorRows(); };
+    list.appendChild(row); refreshInstructorRows();
+  };
+  function refreshInstructorRows() {
+    const rows = document.querySelectorAll('#instructorList .instructor-row');
+    if (rows.length === 0) { addInstructorRow(); return; }
+    rows.forEach(r => r.querySelector('.inst-del').classList.toggle('invisible', rows.length === 1));
+  }
+  function setInstructorRows(names, phones) {
+    const list = $('#instructorList'); if (!list) return; list.innerHTML = '';
+    const n = Math.max(names.length, phones.length, 1);
+    for (let i = 0; i < n; i++) addInstructorRow(names[i] || '', phones[i] || '');
+  }
+  function collectInstructors() {
+    const names = [], phones = [];
+    for (const r of document.querySelectorAll('#instructorList .instructor-row')) {
+      const nm = r.querySelector('.inst-name').value.trim(), ph = r.querySelector('.inst-phone').value.trim();
+      if (!nm && !ph) continue;
+      if (!nm || !ph) return { error: '每位授課教官都需填寫姓名與聯絡電話' };
+      names.push(nm.replace(/[、,]/g, ' ')); phones.push(ph.replace(/[、,]/g, ' '));
+    }
+    if (names.length === 0) return { error: '請至少填寫一位授課教官與聯絡電話' };
+    return { names: names.join(INST_SEP), phones: phones.join(INST_SEP) };
+  }
+  function instEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+  function instructorText(x) {
+    const ns = splitList(x.instructors), ps = splitList(x.instructorPhones);
+    return ns.map((n, i) => ps[i] ? `${n}（${ps[i]}）` : n).join('、');
+  }
+  setInstructorRows([], []);
   function resetForm() {
     $('#bookingForm').reset(); $('#editId').value = ""; $('#date').value = new Date().toISOString().slice(0, 10);
-    selectedDatesSet.clear(); finalSelectedDates =[]; renderDateTags();
+    selectedDatesSet.clear(); finalSelectedDates =[]; renderDateTags(); setInstructorRows([], []);
     $('#formTitle').textContent = "新增預約申請"; $('#submitBtn').innerHTML = "<i class='ri-send-plane-fill'></i> 提交申請"; $('#submitBtn').classList.remove('bg-emerald-600'); $('#submitBtn').classList.add('bg-slate-900'); $('#cancelEditBtn').classList.add('hidden'); $('#modeSingle').checked = true; updateApplyMode();
   }
   window.openCancelModal = (id, isBatch) => { $('#cancelTargetId').value = id; $('#cancelType').value = isBatch ? 'batch' : 'single'; $('#verifyEmail').value = ''; $('#cancelReason').value = ''; $('#cancelModal').classList.replace('hidden', 'flex'); };
@@ -1080,6 +1137,7 @@
                                 <button onclick="openCancelModal('${i.id}', false)" class="text-rose-500 hover:bg-rose-50 p-1 rounded"><i class="ri-close-circle-line"></i></button>
                             </div>
                         </div>
+                        ${instructorText(i) ? `<div class="text-xs text-slate-600 flex items-start gap-1"><i class="ri-user-star-line text-indigo-500"></i><span><b>授課教官：</b>${instEsc(instructorText(i))}</span></div>` : ''}
                         ${i.folderUrl ? `<div class="text-xs flex items-center justify-between bg-slate-50 p-1 rounded"><a href="${i.folderUrl}" target="_blank" class="text-blue-500 hover:underline flex items-center gap-1"><i class="ri-folder-open-line"></i> 開啟資料夾</a></div>` : ''}
                     </div>`
                 }).join('')}
@@ -1091,7 +1149,7 @@
 
   $('#exportCsvBtn').onclick = () => {
     if(!dbData.length) return alert('無資料');
-    const csv = '\ufeff狀態,日期,開始,結束,場地,單位\n' + dbData.map(r => `${r.status},${r.date},${r.startTime},${r.endTime},"${r.facility}","${r.unit}"`).join('\n');
+    const csv = '\ufeff狀態,日期,開始,結束,場地,單位,授課教官,教官聯絡電話\n' + dbData.map(r => `${r.status},${r.date},${r.startTime},${r.endTime},"${r.facility}","${r.unit}","${r.instructors || ''}","${r.instructorPhones || ''}"`).join('\n');
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], {type: 'text/csv'})); a.download = 'Booking.csv'; a.click();
   };
   function showToast(t, m, type) {
