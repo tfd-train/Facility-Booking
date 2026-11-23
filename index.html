@@ -367,7 +367,7 @@
                         <div class="grid md:grid-cols-2 gap-4">
                           <input id="unit" type="text" class="input-field" placeholder="借用單位 *" required>
                           <input id="contact" type="text" class="input-field" placeholder="聯絡人姓名 *" required>
-                          <input id="phone" type="tel" class="input-field" placeholder="聯絡電話 *" required>
+                          <input id="phone" type="tel" inputmode="numeric" maxlength="12" class="input-field" placeholder="手機 * (例：0912345678)" required>
                           <input id="email" type="email" class="input-field" placeholder="Email (接收通知用) *" required>
                         </div>
                     </div>
@@ -974,6 +974,9 @@
       if (sTime && eTime && eTime <= sTime) { alert('時間錯誤：結束時間需晚於開始時間'); return; }
       let facVal = $('#facility').value; if (facVal === 'other') facVal = $('#customFacility').value.trim();
       if (!facVal) { alert('請選擇或輸入場地'); return; }
+      const mobile = $('#phone').value.replace(/[\s-]/g, '');
+      if (!/^09\d{8}$/.test(mobile)) { alert('手機請填 09 開頭的 10 碼號碼'); $('#phone').focus(); return; }
+      $('#phone').value = mobile;
       const inst = collectInstructors(); if (inst.error) { alert(inst.error); return; }
       const btn = $('#submitBtn'); if (btn.disabled) return;
       const originalBtnText = btn.innerHTML; btn.innerHTML = '<i class="ri-loader-4-line animate-spin"></i> 處理中...'; btn.disabled = true;
