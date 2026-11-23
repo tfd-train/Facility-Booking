@@ -517,12 +517,17 @@
                  <h2 class="font-bold text-lg text-slate-700 flex items-center gap-2">
                    <i class="ri-file-list-3-line text-indigo-500"></i> 預約總表
                  </h2>
-                 <div class="flex items-center gap-2">
+                 <div class="flex flex-wrap items-center gap-2">
                    <select id="listPeriod" class="input-field py-1.5 text-sm w-auto">
                      <option value="upcoming" selected>即將到來（含今天）</option>
                      <option value="past">已過去</option>
                      <option value="all">全部日期</option>
                    </select>
+                   <div class="relative flex items-center">
+                     <i class="ri-calendar-2-line absolute left-2.5 text-indigo-500 pointer-events-none"></i>
+                     <input id="listDate" type="date" title="指定日期" class="input-field py-1.5 pl-8 text-sm w-auto">
+                     <button type="button" id="listDateClear" class="hidden ml-1 w-8 h-8 flex items-center justify-center rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50" title="清除日期"><i class="ri-close-line"></i></button>
+                   </div>
                    <input id="searchInput" type="text" placeholder="搜尋單位/場地/教官..." class="input-field py-1.5 text-sm w-40 md:w-56">
                  </div>
                </div>
@@ -1145,6 +1150,9 @@
     const container = $('#bookingListContainer'); if(!container) return; container.innerHTML = '';
     const filter = $('#searchInput').value.trim().toLowerCase();
     const period = ($('#listPeriod') && $('#listPeriod').value) || 'upcoming';
+    const pick = ($('#listDate') && $('#listDate').value) || '';
+    if ($('#listDateClear')) $('#listDateClear').classList.toggle('hidden', !pick);
+    if ($('#listPeriod')) $('#listPeriod').classList.toggle('opacity-50', !!pick);
     const now = new Date(); const today = localDateStr(now);
     const tm = new Date(now); tm.setDate(now.getDate() + 1); const tomorrow = localDateStr(tm);
 
@@ -1153,8 +1161,9 @@
     dbData.forEach(x => { if (x.batchId && statusInfo(x.status).cat !== 'closed') batchCount[x.batchId] = (batchCount[x.batchId] || 0) + 1; });
 
     const base = dbData.filter(x => {
-      if (period === 'upcoming' && x.date < today) return false;
-      if (period === 'past' && x.date >= today) return false;
+      if (pick) { if (x.date !== pick) return false; }
+      else if (period === 'upcoming' && x.date < today) return false;
+      else if (period === 'past' && x.date >= today) return false;
       if (!filter) return true;
       return [x.unit, x.contact, x.facility, x.purpose, x.instructors, x.date].join(' ').toLowerCase().includes(filter);
     });
@@ -1169,7 +1178,7 @@
     }).join('');
 
     const list = base.filter(x => { const c = statusInfo(x.status).cat; return listStatusFilter === 'all' ? c !== 'closed' : c === listStatusFilter; });
-    if (list.length === 0) { container.innerHTML = '<div class="text-center text-slate-400 py-10">此條件下沒有預約</div>'; return; }
+    if (list.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-10">${pick ? `${pick} 沒有預約` : '此條件下沒有預約'}</div>`; return; }
 
     // 依日期分組；即將到來 → 由近到遠，已過去 → 由近到遠（倒序）
     const byDate = {};
@@ -1239,7 +1248,9 @@
       </div>`;
   }
   $('#searchInput').addEventListener('input', renderList);
-  $('#listPeriod').addEventListener('change', renderList);
+  $('#listPeriod').addEventListener('change', () => { $('#listDate').value = ''; renderList(); });
+  $('#listDate').addEventListener('change', renderList);
+  $('#listDateClear').addEventListener('click', () => { $('#listDate').value = ''; renderList(); });
 
   $('#exportCsvBtn').onclick = () => {
     if(!dbData.length) return alert('無資料');
